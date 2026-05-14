@@ -1,9 +1,12 @@
 {
   "su": {
-    "status": "in_progress",
-    "phase": "human_approval",
-    "current_draft": "governance/su/su_draft_v1.md",
-    "iteration_count": 1,
+    "status": "approved",
+    "phase": "approved",
+    "current_draft": "governance/su/su_draft_v2.md",
+    "approved_path": "governance/su/su_approved.md",
+    "approved_date": "2026-05-14",
+    "final_score": 0.95,
+    "iteration_count": 2,
     "complexity": "medium",
     "complexity_signals": ["multiples_decision_makers", "alcance_multi_area", "proyecto_previo_fallido"],
     "cb_threshold": 3,
