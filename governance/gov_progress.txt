@@ -9,3 +9,4 @@
 [2026-05-14 11:30] SU.md — Sección 2.6 completada. Gestión del cambio, plan de comunicación, campeón interno (Andrés Torres), estrategia resistencia en 3 escalones y comunicación hacia arriba capturados. Avanzando a sección 2.7.
 [2026-05-14 12:00] SU.md — Fase 2 COMPLETADA. 8 secciones capturadas (2.1-2.8). Declaracion de exito, condiciones de fracaso, transferencia de conocimiento y compromisos del SPONSOR documentados.
 [2026-05-14 12:00] SU.md — Evaluacion Fase 2.T: complexity=medium + TECNICO disponible -> APLICA. Fase 2.U: complexity=medium (no high) -> OMITIDA. Siguiente accion: invocar su_interviewer para mini-entrevista tecnica con Carlos Mendez.
+[2026-05-14 12:10] SESIÓN SUSPENDIDA por el SPONSOR. Estado guardado: phase=interview_phase2T. Pendiente: conducir Fase 2.T con Carlos Méndez (secciones 2.T.1, 2.T.2, 2.T.3). Las preguntas ya están preparadas — retomar con /gov-start.

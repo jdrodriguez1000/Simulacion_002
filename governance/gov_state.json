@@ -1,7 +1,7 @@
 {
   "su": {
     "status": "in_progress",
-    "phase": "interview_phase2",
+    "phase": "interview_phase2T",
     "iteration_count": 0,
     "complexity": "medium",
     "complexity_signals": ["multiples_decision_makers", "alcance_multi_area", "proyecto_previo_fallido"],
