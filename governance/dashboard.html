@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard de Gobernanza — Triple S</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh;padding:0 0 3rem}
+a{color:inherit;text-decoration:none}
+
+/* ── Layout ── */
+.page{max-width:960px;margin:0 auto;padding:0 1rem}
+
+/* ── Header ── */
+.header{padding:2rem 1rem 1.25rem;max-width:960px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.header-title h1{font-size:1.55rem;font-weight:700;color:#0f172a}
+.header-title p{font-size:0.82rem;color:#64748b;margin-top:.25rem}
+
+/* ── Badge ── */
+.badge{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .95rem;border-radius:9999px;font-size:.75rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge-approved{background:#dcfce7;color:#15803d}
+.badge-progress{background:#fef9c3;color:#a16207}
+.badge-pending{background:#f1f5f9;color:#64748b}
+.badge-rejected{background:#fee2e2;color:#b91c1c}
+
+/* ── Tabs ── */
+.tabs{max-width:960px;margin:0 auto;padding:0 1rem;display:flex;gap:.25rem;border-bottom:2px solid #e2e8f0;margin-bottom:1.75rem;overflow-x:auto}
+.tab-btn{padding:.65rem 1.1rem;border:none;background:transparent;cursor:pointer;font-size:.85rem;font-weight:600;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:color .15s,border-color .15s}
+.tab-btn:hover{color:#1e293b}
+.tab-btn.active{color:#2563eb;border-bottom-color:#2563eb}
+
+/* ── Tab content ── */
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── Section title ── */
+.section-label{font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem}
+
+/* ── Pipeline ── */
+.pipeline-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.85rem}
+.doc-card{background:#fff;border-radius:12px;padding:1.1rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:3px solid transparent;text-align:center}
+.doc-card.status-approved{border-color:#16a34a}
+.doc-card.status-in_progress{border-color:#ca8a04}
+.doc-card.status-rejected{border-color:#dc2626}
+.doc-card.status-pending{border-color:#cbd5e1}
+.doc-card .doc-name{font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:.5rem}
+.doc-card .doc-score{font-size:1.4rem;font-weight:700;color:#15803d;line-height:1}
+.doc-card .doc-meta{font-size:.7rem;color:#94a3b8;margin-top:.35rem;line-height:1.5}
+.doc-card .doc-status-chip{display:inline-block;margin-top:.5rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.15rem .5rem;border-radius:4px}
+.chip-approved{background:#dcfce7;color:#15803d}
+.chip-in_progress{background:#fef9c3;color:#a16207}
+.chip-rejected{background:#fee2e2;color:#b91c1c}
+.chip-pending{background:#f1f5f9;color:#64748b}
+
+/* ── Timeline ── */
+.timeline-filters{display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.timeline-filters input,.timeline-filters select{padding:.45rem .75rem;border:1px solid #e2e8f0;border-radius:8px;font-size:.82rem;background:#fff;color:#1e293b;outline:none}
+.timeline-filters input:focus,.timeline-filters select:focus{border-color:#93c5fd}
+.tl-list{display:flex;flex-direction:column;gap:.6rem}
+.tl-row{background:#fff;border-radius:10px;padding:.85rem 1rem;box-shadow:0 1px 2px rgba(0,0,0,.06);display:flex;gap:.9rem;align-items:flex-start}
+.tl-ts{font-size:.7rem;color:#94a3b8;white-space:nowrap;padding-top:.1rem;min-width:105px}
+.tl-agent-chip{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:.2rem .55rem;border-radius:5px;white-space:nowrap;align-self:flex-start}
+.tl-msg{font-size:.84rem;color:#1e293b;line-height:1.5;flex:1}
+.tl-empty{font-size:.85rem;color:#94a3b8;text-align:center;padding:2rem}
+
+/* Agent chip colors */
+.agent-doc_orchestrator{background:#eff6ff;color:#1d4ed8}
+.agent-su_interviewer{background:#f0fdf4;color:#15803d}
+.agent-su_synthesizer{background:#fefce8;color:#854d0e}
+.agent-su_evaluator{background:#f5f3ff;color:#6d28d9}
+.agent-su_needs_analyzer{background:#fff7ed;color:#c2410c}
+.agent-doc_auditor{background:#fdf2f8;color:#86198f}
+.agent-harness_director{background:#f0f9ff;color:#0369a1}
+.agent-default{background:#f1f5f9;color:#475569}
+
+/* ── Scores ── */
+.score-doc-block{background:#fff;border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:1.25rem}
+.score-doc-title{font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem}
+.score-versions{display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.score-version-badge{padding:.35rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700}
+.score-version-ok{background:#dcfce7;color:#15803d}
+.score-version-fail{background:#fee2e2;color:#b91c1c}
+.score-dims{display:flex;flex-direction:column;gap:.55rem}
+.score-dim-row{display:flex;align-items:center;gap:.85rem}
+.score-dim-name{font-size:.78rem;color:#475569;min-width:180px;flex-shrink:0}
+.score-bar-wrap{flex:1;background:#f1f5f9;border-radius:4px;height:10px;position:relative}
+.score-bar{height:100%;border-radius:4px;transition:width .3s}
+.score-bar-ok{background:#4ade80}
+.score-bar-fail{background:#f87171}
+.score-bar-threshold{position:absolute;top:-3px;bottom:-3px;width:2px;background:#94a3b8}
+.score-dim-val{font-size:.78rem;font-weight:700;min-width:36px;text-align:right}
+.score-empty{font-size:.85rem;color:#94a3b8;text-align:center;padding:2rem}
+
+/* ── Metrics ── */
+.metrics-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.metrics-table th{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:.75rem 1rem;text-align:left;border-bottom:1px solid #f1f5f9}
+.metrics-table td{padding:.8rem 1rem;border-bottom:1px solid #f8fafc;font-size:.83rem;vertical-align:top}
+.metrics-table tr:last-child td{border-bottom:none}
+.metrics-table tr:hover td{background:#f8fafc}
+.cat-chip{font-size:.62rem;font-weight:700;text-transform:uppercase;padding:.15rem .45rem;border-radius:4px;letter-spacing:.04em}
+.cat-eficacia{background:#eff6ff;color:#1d4ed8}
+.cat-eficiencia{background:#f0fdf4;color:#15803d}
+.cat-robustez{background:#fef2f2;color:#dc2626}
+.cat-calidad_ia{background:#faf5ff;color:#7c3aed}
+.cat-satisfaccion{background:#fff7ed;color:#c2410c}
+.cat-valor_negocio{background:#ecfdf5;color:#059669}
+.metric-status{font-size:1rem;text-align:center}
+.metric-val{font-weight:700;color:#0f172a}
+.metric-val-na{color:#94a3b8}
+.threshold-txt{font-size:.75rem;color:#94a3b8}
+
+/* ── Alerts ── */
+.alerts-section{margin-bottom:1.5rem}
+.alerts-section-title{font-size:.8rem;font-weight:700;color:#475569;margin-bottom:.75rem}
+.alert-card{background:#fff;border-radius:10px;padding:1rem 1.25rem;box-shadow:0 1px 2px rgba(0,0,0,.06);margin-bottom:.65rem;border-left:4px solid #f87171}
+.alert-card.type-pending_change{border-color:#fb923c}
+.alert-card .alert-title{font-size:.88rem;font-weight:700;color:#0f172a;margin-bottom:.3rem}
+.alert-card .alert-desc{font-size:.8rem;color:#475569;line-height:1.5}
+.alert-card .alert-meta{font-size:.72rem;color:#94a3b8;margin-top:.4rem}
+.no-alerts{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1.5rem;text-align:center;color:#15803d;font-size:.9rem;font-weight:600}
+
+/* ── Artifacts ── */
+.artifacts-layout{display:grid;grid-template-columns:200px 1fr;gap:1rem;min-height:400px}
+.artifact-list{display:flex;flex-direction:column;gap:.4rem}
+.artifact-btn{padding:.6rem .85rem;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:.82rem;color:#475569;text-align:left;transition:all .15s;font-weight:500}
+.artifact-btn:hover{background:#f8fafc;color:#1e293b}
+.artifact-btn.active{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;font-weight:700}
+.artifact-viewer{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden}
+.artifact-header{padding:.75rem 1.25rem;border-bottom:1px solid #f1f5f9;font-size:.8rem;font-weight:700;color:#475569;display:flex;justify-content:space-between;align-items:center}
+.artifact-content{padding:1.25rem;overflow:auto;max-height:600px}
+.artifact-content pre{font-family:"Menlo","Consolas","Courier New",monospace;font-size:.75rem;line-height:1.6;color:#1e293b;white-space:pre-wrap;word-break:break-word}
+.artifact-empty{padding:3rem;text-align:center;color:#94a3b8;font-size:.85rem}
+
+/* ── Phases ── */
+.phases-section{margin-top:1.5rem}
+.phases-doc-title{font-size:.82rem;font-weight:700;color:#475569;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
+.phases-doc-title .phase-doc-badge{font-size:.65rem;font-weight:700;text-transform:uppercase;padding:.15rem .5rem;border-radius:4px}
+.phases-list{display:flex;flex-direction:column;gap:.4rem;padding-left:.25rem}
+.phase-row{display:flex;align-items:center;gap:.65rem;padding:.45rem .75rem;background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.phase-icon{font-size:.85rem;flex-shrink:0}
+.phase-label{font-size:.82rem;color:#1e293b}
+
+/* ── Footer ── */
+footer{max-width:960px;margin:2rem auto 0;padding:0 1rem;display:flex;justify-content:space-between;font-size:.73rem;color:#94a3b8;flex-wrap:wrap;gap:.5rem}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <h1>Dashboard de Gobernanza &mdash; Triple S</h1>
+    <p id="header-meta">Generado el 2026-05-14 09:48</p>
+  </div>
+  <span id="global-badge" class="badge badge-pending"><span class="dot"></span> Cargando&hellip;</span>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('pipeline')">Pipeline</button>
+  <button class="tab-btn" onclick="showTab('timeline')">Timeline</button>
+  <button class="tab-btn" onclick="showTab('scores')">Scores</button>
+  <button class="tab-btn" onclick="showTab('metrics')">M&eacute;tricas</button>
+  <button class="tab-btn" onclick="showTab('alerts')">Alertas <span id="alert-count"></span></button>
+  <button class="tab-btn" onclick="showTab('artifacts')">Artefactos</button>
+</div>
+
+<div class="page">
+
+  <!-- Tab: Pipeline -->
+  <div id="tab-pipeline" class="tab-pane active">
+    <p class="section-label">Pipeline de documentos (7 en total)</p>
+    <div id="pipeline-grid" class="pipeline-grid"></div>
+  </div>
+
+  <!-- Tab: Timeline -->
+  <div id="tab-timeline" class="tab-pane">
+    <p class="section-label">Historial de eventos</p>
+    <div class="timeline-filters">
+      <select id="filter-agent" onchange="renderTimeline()">
+        <option value="">Todos los agentes</option>
+      </select>
+      <input id="filter-text" type="text" placeholder="Buscar en mensajes&hellip;" oninput="renderTimeline()"/>
+    </div>
+    <div id="tl-list" class="tl-list"></div>
+  </div>
+
+  <!-- Tab: Scores -->
+  <div id="tab-scores" class="tab-pane">
+    <p class="section-label">Scores por iteraci&oacute;n y dimensi&oacute;n</p>
+    <div id="scores-content"></div>
+  </div>
+
+  <!-- Tab: Metrics -->
+  <div id="tab-metrics" class="tab-pane">
+    <p class="section-label">M&eacute;tricas del harness (cat&aacute;logo de 10)</p>
+    <table class="metrics-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Categor&iacute;a</th>
+          <th>Descripci&oacute;n</th>
+          <th>Valor</th>
+          <th>Umbral</th>
+          <th style="text-align:center">Estado</th>
+        </tr>
+      </thead>
+      <tbody id="metrics-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Tab: Alerts -->
+  <div id="tab-alerts" class="tab-pane">
+    <div id="alerts-content"></div>
+  </div>
+
+  <!-- Tab: Artifacts -->
+  <div id="tab-artifacts" class="tab-pane">
+    <p class="section-label">Visor de artefactos</p>
+    <div class="artifacts-layout">
+      <div id="artifact-list" class="artifact-list"></div>
+      <div class="artifact-viewer">
+        <div class="artifact-header">
+          <span id="artifact-viewer-title">Selecciona un artefacto</span>
+          <span id="artifact-viewer-filename" style="font-weight:400;color:#94a3b8"></span>
+        </div>
+        <div id="artifact-viewer-content" class="artifact-content">
+          <div class="artifact-empty">Haz clic en un artefacto para verlo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .page -->
+
+<footer>
+  <span>Triple S &middot; Documento confidencial</span>
+  <span>Dashboard generado por scripts/gen_dashboard.py</span>
+</footer>
+
+<script>
+const HARNESS_DATA = {"generated_at":"2026-05-14 09:48","project":"Triple S","pipeline":[{"id":"su","label":"SU.md","status":"in_progress","phase":"interview_phase2","iteration_count":0,"complexity":"medium","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]},{"id":"brd","label":"BRD","status":"pending","phase":"","iteration_count":0,"complexity":"","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]},{"id":"bdd","label":"BDD","status":"pending","phase":"","iteration_count":0,"complexity":"","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]},{"id":"sad","label":"SAD","status":"pending","phase":"","iteration_count":0,"complexity":"","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]},{"id":"specdd","label":"specDD","status":"pending","phase":"","iteration_count":0,"complexity":"","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]},{"id":"feasibility","label":"Feasibility","status":"pending","phase":"","iteration_count":0,"complexity":"","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]},{"id":"backlog","label":"Backlog","status":"pending","phase":"","iteration_count":0,"complexity":"","final_score":null,"approved_date":"","gaps_criticos":0,"gaps_menores":0,"needs_analyzer_confidence":null,"completed_phases":[]}],"timeline":[{"timestamp":"2026-05-14 12:01","agent":"doc_orchestrator","message":"Push a origin: ok — SU Phase2 interview completed."},{"timestamp":"2026-05-14 12:01","agent":"doc_orchestrator","message":"Regla DASH-1 ejecutada: python scripts/gen_dashboard.py pendiente."},{"timestamp":"2026-05-14 12:00","agent":"su_interviewer","message":"sección 2.8 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 12:00]. 5 subsecciones: (a) éxito = fill rate 91% + adopción genuina + capacidad instalada sin depender de Carlos; (b) fracaso inapelable = fill rate <87% o integridad SAP tan degradada que el modelo supera al humano en negativo, o sabotaje activo del equipo; (c) dueño operativo Laura Gómez desde ene-2027, un analista BI con capacidad de reentrenar y diagnosticar, transferencia activa durante el desarrollo; (d) 3 entregables de documentación obligatorios antes de cierre; (e) 4 patrones del ERP a no repetir + compromiso del SPONSOR de atención real. Fase 2 COMPLETADA."},{"timestamp":"2026-05-14 12:00","agent":"doc_orchestrator","message":"Fase 2 completada. Evaluando condiciones para Fase 2.T y 2.U. complexity=medium, TECNICO=Carlos Mendez (disponible=true), USUARIO=Laura Gomez (disponible=true)."},{"timestamp":"2026-05-14 12:00","agent":"doc_orchestrator","message":"Condición Fase 2.T cumplida (complexity=medium, TECNICO=Carlos Mendez disponible). Invocando su_interviewer para Fase 2.T."},{"timestamp":"2026-05-14 12:00","agent":"doc_orchestrator","message":"Fase 2.U omitida — complexity=medium (se requiere high) y/o USUARIO no disponible bajo criterio de umbral."},{"timestamp":"2026-05-14 11:45","agent":"doc_orchestrator","message":"SPONSOR entregó respuestas completas de sección 2.7 (presupuesto y restricciones financieras). Rango COP 150-300M total hasta dic-2026 (aprobación CEO próxima semana); 70-80% costo = tiempo Carlos; Azure COP 8-15M/mes; sin consultoría externa; plazo fiscal 2026 inamovible; riesgo reasignación presupuestal en revisión julio si no arranca antes de junio. Instruyendo su_interviewer para registrar 2.7 y conducir 2.8."},{"timestamp":"2026-05-14 11:30","agent":"su_interviewer","message":"sección 2.6 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 11:30]. 4 subsecciones: (a) plan de comunicación en 2 fases: co-diseño override con Laura y Roberto antes de kick-off + presentación general 2 semanas después; narrativa centrada en aprendizaje colaborativo, no eficiencia; demo con SKUs reales de Roberto antes del piloto; (b) capacitación a cargo de Carlos + Laura, 2 sesiones x 2h con casos reales, campeón interno: Andrés Torres (planeador bebidas, perfil analítico); (c) gestión resistencia en 3 escalones: conversación Laura semanas 1-2, conversación SPONSOR+Roberto semana 3, decisión ejecutiva con Andrés como referente semana 5 si Roberto bloquea activamente; punto de no retorno: influencia activa de Roberto sobre otros planeadores; (d) reporte al CEO solo en hitos clave; distinción modelo vs. negocio para fill rate establecida desde kick-off. Avanzando a sección 2.7."},{"timestamp":"2026-05-14 11:15","agent":"su_interviewer","message":"sección 2.5 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 11:15]. 5 subsecciones: (a) Azure como plataforma obligatoria (ya aprobada por IT, acuerdos seguridad firmados); (b) actualización semanal schedulada domingos, resultados lunes 7am, alerta automática a Carlos y Laura antes 6am si falla; (c) XGBoost/LightGBM permitidos si hay explicación individual por SKU de los 3 principales drivers (no solo importancias globales); (d) arquitectura 3 capas: SAP→ADLS→Azure ML→Azure SQL DB→Power BI, BI mantiene operativamente post-producción; (e) override con tabla en Azure SQL DB (SKU, semana, forecast original, ajustado, motivo texto libre), Power BI muestra ambos valores en paralelo. Avanzando a sección 2.6."},{"timestamp":"2026-05-14 11:15","agent":"doc_orchestrator","message":"sección 2.5 registrada en su_interview.md. Conduciendo sección 2.6 — Gestión del cambio y comunicación."},{"timestamp":"2026-05-14 11:00","agent":"su_interviewer","message":"sección 2.4 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 11:00]. 4 subsecciones: (a) alcance piloto — 3 bodegas (BOG/MED/CAL, 70% volumen) + 300 SKUs tipo A; extensión al resto post-validación; (b) 5 elementos fuera de v1 + límite explícito sin OC automáticas en SAP; (c) fuentes de entrada: Excel promociones (carga semanal manual), variables calendario codificadas, precios SAP, descuentos canal moderno pendiente evaluación; (d) salida via Power BI (infraestructura existente), recomendaciones manuales a SAP intencional, vistas separadas con permisos diferenciados para CFO y Gerente de Compras. Avanzando a sección 2.5."},{"timestamp":"2026-05-14 11:00","agent":"doc_orchestrator","message":"sección 2.4 completada y registrada en su_interview.md. Conduciendo sección 2.5 — Arquitectura técnica y modelo."},{"timestamp":"2026-05-14 10:46","agent":"su_interviewer","message":"sección 2.3 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 10:45]. 4 subsecciones: dependencias IT/SAP (credenciales 5-10 días hábiles + ventana mantenimiento jul), disponibilidad Laura (auditoría ago 60% + feria sep 3 días — piloto inicia última semana ago, 5 semanas hasta oct), fuente de verdad como condición de entrada en kick-off (no supuesto), riesgos de continuidad (Carlos bajo, Laura fuera de período crítico, Roberto Sánchez riesgo real sin plan contingencia). Avanzando a sección 2.4."},{"timestamp":"2026-05-14 10:45","agent":"doc_orchestrator","message":"SPONSOR entregó respuestas completas de sección 2.3. Dependencias IT: solicitud formal a IT (visto bueno SPONSOR, 5-10 días hábiles, iniciar día 1); ventana de mantenimiento SAP B1 primera semana julio (downtime 2 días, no crítico). Disponibilidad: auditoría agosto consume 60% de Laura (2-3 semanas) — prueba piloto inicia última semana agosto, 5 semanas hasta primera semana octubre; feria sectorial septiembre 3 días (no bloqueante). Fuente de verdad: condición de entrada en kick-off con Laura y Gerente de Compras presentes — si no se acuerda, proyecto no arranca. Riesgos de continuidad: Laura con licencia maternidad feb-2027 (fuera del período crítico); Roberto Sánchez con posible promoción a coordinador regional antes de octubre (probabilidad baja, no hay plan de contingencia). Instruyendo su_interviewer para registrar 2.3 y conducir 2.4."},{"timestamp":"2026-05-14 10:20","agent":"su_interviewer","message":"sección 2.2 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 10:20]. Período de prueba: 6 semanas en paralelo. Criterio de adopción: MAPE <20% en SKUs tipo A (cuantitativo) + declaración explícita de confianza de Laura y Roberto (cualitativo) — ambos necesarios. Zona gris fill rate: >=89% continúa, 87-89% revisión de causas, <87% fracaso (autoridad: SPONSOR con input Laura). Tasa de intervención: métrica de adopción progresiva (esperado >40% semanas 1-6, señal de alerta si >30% a 6M en SKUs tipo A). Autoridad para producción: SPONSOR con aval Laura; CEO no requiere aprobar salvo cambio de alcance o presupuesto. Avanzando a sección 2.3."},{"timestamp":"2026-05-14 10:05","agent":"doc_orchestrator","message":"SPONSOR entregó respuestas completas de sección 2.1 (fecha límite producción 1-sep-2026 por fill rate dic-2026, cierre presupuesto Q4 oct-2026; alineación CEO prerrequisito de presupuesto no de inicio; 3 eventos relevantes: datos Día Madre disponibles, pico jun-jul como caso de prueba, auditoría Supply Chain ago por 2-3 semanas). Instruyendo su_interviewer para registrar 2.1 y conducir 2.2."},{"timestamp":"2026-05-14 10:01","agent":"doc_orchestrator","message":"Push a origin: ok — SU Phase1 interview completed."},{"timestamp":"2026-05-14 10:00","agent":"doc_orchestrator","message":"sección 1.5 recibida del SPONSOR. Instruyendo su_interviewer para registrar 1.5 en su_interview.md y marcar Fase 1 como COMPLETADA."},{"timestamp":"2026-05-14 10:00","agent":"su_interviewer","message":"sección 1.5 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 10:00]. SAP B1 con 6 años de datos (2019-presente), 12 bodegas como centros de costo. Problemas de calidad identificados: migración 2020-2021 (4 meses incompletos), códigos devolución incorrectos, Excel paralelo de planeadores. Promociones en Excel comercial y contratos físicos, no integradas a SAP. 1.800 SKUs activos, clasificación ABC (300 SKUs tipo A = 80% ventas). Conexión SQL Server via servidor reporting (solo lectura, aprobada por IT). Fase 1 COMPLETADA."},{"timestamp":"2026-05-14 10:00","agent":"doc_orchestrator","message":"complejidad clasificada como medium (3 señales P6-1). Señales: multiples_decision_makers, alcance_multi_area, proyecto_previo_fallido. cb_threshold=3. gov_state.json actualizado a phase=interview_phase2."},{"timestamp":"2026-05-14 09:46","agent":"su_interviewer","message":"sección 1.4 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 09:45]. 8 planeadores (4 categorías), Laura Gómez Coordinadora (aprobación hasta COP 50M), Gerente de Compras y CFO como usuarios adicionales. Flujo copiloto confirmado. Resistencia: Roberto Sánchez (influencia equipo) — requiere intervención manual con registro. CEO pendiente alineación. Avanzando a sección 1.5."},{"timestamp":"2026-05-14 09:45","agent":"doc_orchestrator","message":"sesión retomada. SPONSOR entregó respuestas completas de sección 1.4 (8 planeadores por categoría, Coordinadora Laura Gómez con límite aprobación COP 50M, Gerente de Compras y CFO como stakeholders adicionales; flujo aprobación copiloto no autopiloto; resistencia de 2 planeadores senior especialmente Roberto Sánchez con influencia de equipo; CEO sponsor ejecutivo pendiente alineación próxima semana). Instruyendo su_interviewer para registrar 1.4 y conducir 1.5."},{"timestamp":"2026-05-14 09:35","agent":"su_interviewer","message":"sección 1.3 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 09:35]. Solución esperada: dashboard semanal por SKU/bodega con forecast 4-8 semanas, alertas quiebra 15 días y sugerencia de orden (qty + fecha). Reducción de tiempo de decisión: medio día/categoría → 30 min/cartera. Criterios de éxito a 6M (dic-2026): fill rate 91%, días inventario 65, 80% OC referenciando forecast. A 12M (may-2027): fill rate 95% sostenido 2 meses, días inventario 45, 2 contratos canal moderno renovados. Restricciones no negociables (4): integración SAP B1 sin extracción manual, explicabilidad del modelo (no caja negra), solución en nube sin mantenimiento IT, sin licencias adicionales de costo significativo. Avanzando a sección 1.4."},{"timestamp":"2026-05-14 09:26","agent":"su_interviewer","message":"sección 1.2 registrada en su_interview.md con checkpoint [COMPLETADO 2026-05-14 09:25]. Fill rate actual 87% (objetivo 95%), COP 800M/punto porcentual, sobrestock >90 días (estándar 45), COP 12.000M inmovilizados. 4 áreas afectadas. 2 consecuencias críticas con fecha. Avanzando a sección 1.3."},{"timestamp":"2026-05-14 09:25","agent":"doc_orchestrator","message":"gov_init.py status=ok (re-verificado al retomar sesión). SPONSOR entregó respuestas completas de sección 1.2 (métricas: fill rate 87% vs 95% objetivo, sobrestock >90 días vs 45 días estándar, COP 12.000M capital inmovilizado; áreas: Planeación, Comercial, Finanzas, Dirección General; consecuencias: riesgo de 2 contratos canal moderno con cláusula fill rate 93%, meta junta capital de trabajo FY2026). Instruyendo su_interviewer para registrar 1.2 y conducir 1.3."},{"timestamp":"2026-05-14 09:20","agent":"su_interviewer","message":"sección 1.1 registrada en su_interview.md. Organización: distribuidora consumo masivo Colombia, 12 ciudades. Problema: ausencia de pronóstico de demanda por SKU — quiebres y sobrestock. Antecedente: módulo ERP fallido por granularidad insuficiente. Avanzando a sección 1.2."},{"timestamp":"2026-05-14 09:15","agent":"doc_orchestrator","message":"respuestas de Fase 0 recibidas del SPONSOR. SPONSOR=Juan Diego Rodriguez (Director Data & Analytics), TECNICO=Carlos Méndez (Data Scientist Senior, disponibilidad completa), USUARIO=Laura Gómez (Jefe Cadena de Suministro, disponibilidad mar/jue 1h). Pasando al su_interviewer para registrar Fase 0 y conducir Fase 1."},{"timestamp":"2026-05-14 09:10","agent":"doc_orchestrator","message":"gov_init.py status=warning. Issues: gov_progress.txt no encontrado, gov_history.log no encontrado, su_sprint_contract.md no existe. Auto-reparación aplicada: gov_progress.txt creado (vacío), gov_history.log creado (vacío), agent_metrics.jsonl creado (vacío), pending_prompt_changes.json creado ([]). sprint_contract pendiente de creación vía skill."},{"timestamp":"2026-05-14 09:10","agent":"doc_orchestrator","message":"su_sprint_contract.md no existía. Creado en governance/su/su_sprint_contract.md antes de iniciar. github_remote_configured=true (variable de sesión guardada)."},{"timestamp":"2026-05-14 09:10","agent":"doc_orchestrator","message":"gov_failure_modes.json no encontrado — sin patrones de fallo previos. Paso 1.5 omitido."},{"timestamp":"2026-05-14 09:10","agent":"doc_orchestrator","message":"sesión iniciada. gov_state.json indica su.phase=interview_phase1. Plan guardado en gov_progress.txt."}],"metrics":[{"id":"gap_escape_rate","category":"eficacia","description":"% de gaps que doc_auditor NO detectó pero el humano sí encontró","value":null,"threshold_op":"lt","threshold_val":0.15,"status":"N/A"},{"id":"first_pass_approval_rate","category":"eficacia","description":"% de documentos aprobados en la primera iteración","value":0.0,"threshold_op":"gt","threshold_val":0.4,"status":"ALERTA"},{"id":"avg_iteration_count","category":"eficiencia","description":"Promedio de drafts generados por documento hasta aprobar","value":null,"threshold_op":"lte","threshold_val":3,"status":"N/A"},{"id":"agent_failure_rate","category":"robustez","description":"% de invocaciones de agente que fallaron y requirieron reintento","value":null,"threshold_op":"lt","threshold_val":0.05,"status":"N/A"},{"id":"circuit_breaker_activations","category":"robustez","description":"Número de veces que se activó el circuit breaker (3 iteraciones sin aprobar)","value":0,"threshold_op":"eq","threshold_val":0,"status":"OK"},{"id":"evaluator_human_agreement","category":"calidad_ia","description":"% de veces que el evaluador IA y el humano coincidieron en aprobar o rechazar","value":null,"threshold_op":"gt","threshold_val":0.8,"status":"N/A"},{"id":"avg_confidence_at_synthesis","category":"calidad_ia","description":"Confidence score promedio del su_needs_analyzer en el momento en que se invocó al su_synthesizer. Correlaciona calidad de la entrevista con número de iteraciones necesarias.","value":null,"threshold_op":"gte","threshold_val":0.75,"status":"N/A"},{"id":"confidence_iteration_correlation","category":"calidad_ia","description":"Correlación entre confidence_score inicial y número de iteraciones synthesizer→evaluator. Valor cercano a -1.0 confirma la hipótesis: mayor confidence inicial = menos iteraciones.","value":null,"threshold_op":"lt","threshold_val":-0.5,"status":"N/A"},{"id":"human_rejection_count","category":"satisfaccion","description":"Veces que el stakeholder rechazó el draft después de pasar evaluación automática","value":0,"threshold_op":"lte","threshold_val":1,"status":"OK"},{"id":"interview_completeness","category":"valor_negocio","description":"% de preguntas con respuesta real vs. 'no aplica' o sin respuesta","value":null,"threshold_op":"gt","threshold_val":0.7,"status":"N/A"}],"scores":[],"alerts":[],"artifacts":[{"label":"SU Entrevista","filename":"su_interview.md","content":"# SU Interview — Documento de entrevista\n**Proyecto:** [A confirmar en sección 1.1]\n**Fecha de inicio:** 2026-05-14\n**Agente:** su_interviewer\n\n---\n\n## FASE 0 — Mapa de stakeholders [COMPLETADO 2026-05-14 09:15]\n\n| Rol | Nombre | Cargo | Disponibilidad |\n|-----|--------|-------|----------------|\n| SPONSOR | Juan Diego Rodriguez | Director de Data & Analytics | Disponible como punto de contacto principal |\n| TECNICO | Carlos Méndez | Data Scientist Senior | Tiempo completo durante el proyecto |\n| USUARIO | Laura Gómez | Jefe de Cadena de Suministro | Martes y jueves, 1 hora por sesión |\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n---\n\n## FASE 1 — Exploración del problema\n\n### 1.1 — Contexto organizacional y del problema [COMPLETADO 2026-05-14]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**1.1.a — ¿Cuál es la organización, industria y área involucrada en este proyecto?**\n\nSomos la unidad de Data & Analytics de una empresa distribuidora de consumo masivo en Colombia. Operamos a nivel nacional con presencia en 12 ciudades. El área de Supply Chain tiene aproximadamente 40 personas entre planeadores, analistas de inventario y coordinadores de compras. La industria es distribución y logística de productos de consumo masivo.\n\n**1.1.b — ¿Cuál es el problema concreto que quieren resolver?**\n\nHoy los planeadores deciden cuándo y cuánto pedir a los proveedores basándose en su experiencia personal y en reportes estáticos de Excel. Esto genera dos problemas frecuentes: quiebres de stock en productos de alta rotación que frenan las ventas, y sobrestock en productos de baja rotación que inmoviliza capital. No tenemos una forma sistemática de anticipar la demanda futura por SKU.\n\n**1.1.c — ¿Cuándo empezó este problema y qué se ha intentado antes?**\n\nEl problema existe desde hace al menos 3 años. Se intentó resolver una vez con una consultoría externa que implementó un módulo de planeación en el ERP, pero los planeadores dejaron de usarlo porque los pronósticos eran muy agregados (a nivel de categoría, no de SKU) y no reflejaban la estacionalidad real del negocio. Desde entonces volvimos al Excel.\n\n---\n\n### 1.2 — Impacto del problema [COMPLETADO 2026-05-14 09:25]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**1.2.a — ¿Cómo miden el impacto del problema hoy?**\n\nSeguimos dos métricas principales. Para quiebres de stock: tasa de fill rate al cliente, que hoy está en 87% cuando el objetivo es 95%. Estimamos que cada punto porcentual de fill rate perdido equivale a aproximadamente COP 800 millones en ventas no realizadas al año. Para sobrestock: días de inventario por categoría — hoy tenemos categorías con más de 90 días de inventario cuando el estándar del negocio es 45 días. El capital inmovilizado en exceso ronda los COP 12.000 millones.\n\n**1.2.b — ¿Qué áreas de la organización están afectadas y cómo?**\n\nLos planeadores son los más afectados operativamente: dedican cerca del 60% de su tiempo a apagar incendios reactivos en lugar de planear. El área comercial sufre los quiebres directamente porque pierden ventas y deterioran relaciones con clientes clave. Finanzas presiona por la inmovilización de capital. Y la Dirección General lo tiene como uno de los tres objetivos estratégicos del año.\n\n**1.2.c — ¿Qué consecuencias tiene no resolver este problema en el corto plazo?**\n\nSi no lo resolvemos este año, enfrentamos dos riesgos concretos: perder dos contratos con clientes de canal moderno que tienen cláusulas de fill rate mínimo del 93%, y no cumplir la meta de reducción de capital de trabajo que la junta directiva exige para el cierre fiscal de 2026. La presión es real y tiene fecha.\n\n---\n\n### 1.3 — Solución esperada y restricciones [COMPLETADO 2026-05-14 09:35]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**1.3.a — ¿Qué debe hacer la solución?**\n\nEl lunes por la mañana cada planeador debería abrir un dashboard y ver, por SKU y por bodega, tres cosas: el forecast de demanda para las próximas 4 y 8 semanas, una alerta de los SKUs que van a quiebra en los próximos 15 días si no se ordena, y una sugerencia de cantidad y fecha de orden considerando el lead time del proveedor. La decisión que debe volverse más rápida es precisamente esa: cuándo lanzar una orden de compra y por cuánto. Hoy eso les toma medio día por categoría; debería tomar 30 minutos para toda su cartera.\n\n**1.3.b — ¿Cuáles son los criterios de éxito?**\n\nA diciembre de 2026 (6 meses): fill rate subiendo de 87% a mínimo 91%, días de inventario bajando de 90 a 65 días en las categorías críticas, y los planeadores usando el sistema — métrica proxy: al menos 80% de las órdenes de compra generadas ese mes referenciando el forecast del modelo. A mayo de 2027 (12 meses): fill rate en 95% sostenido por dos meses consecutivos, días de inventario en 45 días, y los dos contratos de canal moderno renovados sin penalización por fill rate.\n\n**1.3.c — ¿Cuáles son las restricciones?**\n\nCuatro restricciones no negociables. Primero, debe integrarse con el ERP actual (SAP B1) para leer inventario y movimientos — no podemos pedir extracciones manuales, ya quemamos esa credibilidad. Segundo, los planeadores deben poder ver y entender por qué el modelo recomienda lo que recomienda — nada de caja negra, aprendimos eso con la consultoría anterior. Tercero, el equipo de IT no tiene capacidad para mantener infraestructura nueva, así que la solución debe correr en la nube con mínima intervención de su parte. Cuarto, presupuesto acotado: no podemos adquirir licencias de software adicionales de costo significativo.\n\n---\n\n### 1.4 — Stakeholders y política organizacional [COMPLETADO 2026-05-14 09:45]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**1.4.a — Actores clave:**\n\nTenemos 8 planeadores en total, organizados por categoría de producto: 3 cubren alimentos, 2 bebidas, 2 cuidado del hogar y 1 cuidado personal. Existe un Coordinador de Planeación — ese es el cargo de Laura Gómez — que revisa y consolida antes de que salgan las órdenes. Además de los planeadores, el Gerente de Compras necesita ver los outputs agregados para negociar volúmenes con proveedores, y el CFO quiere visibilidad del capital de trabajo proyectado.\n\n**1.4.b — Proceso de aprobación:**\n\nEl planeador genera la propuesta de orden, Laura la revisa y aprueba órdenes hasta COP 50 millones. Por encima de ese monto entra el Gerente de Compras. El sistema debe producir la recomendación y dejar la decisión final al planeador — no debe generar órdenes automáticamente. Laura es explícita en ese punto: quiere que el modelo sea un copiloto, no un autopiloto.\n\n**1.4.c — Resistencias:**\n\nHay dos planeadores con más de 8 años de antigüedad que son los más escépticos. Su argumento es que \"el negocio tiene muchas variables que un modelo no puede capturar\", refiriéndose a promociones y negociaciones especiales. Con el ERP hubo un factor político importante: la consultoría implementó el módulo sin involucrar a los planeadores en el diseño, se los presentaron terminado y les pidieron que confiaran. Eso generó rechazo activo. El planeador con más antigüedad, Roberto Sánchez, tiene influencia sobre el equipo — si él no adopta, los demás tampoco. Lo que necesita Roberto para dar su apoyo es poder intervenir el forecast manualmente cuando su criterio difiera del modelo, y que esa intervención quede registrada para aprender de ella.\n\n**1.4.d — Patrocinador ejecutivo:**\n\nEl SPONSOR (Juan Diego Rodriguez) es el sponsor directo del proyecto. Su jefe es el CEO, quien tiene visibilidad general del objetivo estratégico de mejorar el fill rate, pero no del proyecto de forecasting específicamente. Alineación del CEO pendiente — agendada para la próxima semana antes de iniciar el desarrollo.\n\n---\n\n### 1.5 — Datos disponibles y acceso a sistemas [COMPLETADO 2026-05-14 10:00]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**1.5.a — Historial de ventas:**\n\nHistorial de ventas por SKU y por bodega en SAP B1 desde 2019, aproximadamente 6 años de datos. Las 12 bodegas están registradas como centros de costo separados. El historial de movimientos de inventario también está en SAP B1: entradas, salidas, traslados entre bodegas.\n\n**1.5.b — Calidad de los datos:**\n\nSAP B1 es la fuente oficial pero tiene problemas conocidos. Entre 2020 y 2021 hubo una migración parcial que dejó aproximadamente 4 meses con registros incompletos. Algunos planeadores registran devoluciones de clientes con códigos incorrectos, lo que distorsiona las salidas reales. Los planeadores confían más en sus Excel propios para productos de alta rotación: hojas de seguimiento semanal que consideran más confiables que los reportes de SAP. Necesidad identificada: establecer SAP como fuente de verdad o reconciliar ambas fuentes antes de entrenar el modelo.\n\n**1.5.c — Promociones y eventos:**\n\nLas promociones de canal moderno (supermercados) están en contratos físicos y en un Excel del área comercial; no integradas a SAP. Las promociones de canal tradicional son informales y en muchos casos solo las conoce el ejecutivo de ventas de zona. Cuatro temporadas altas identificadas: Navidad, Semana Santa, regreso a clases y Día de la Madre — conocidas por el equipo pero no formalmente documentadas en ningún sistema centralizado.\n\n**1.5.d — Portafolio de SKUs:**\n\nAproximadamente 1.800 SKUs activos. Clasificación ABC básica en SAP: SKUs tipo A son alrededor de 300 y representan el 80% de las ventas. Rotación moderada del portafolio: entran y salen entre 80 y 120 SKUs por año, principalmente en la categoría de cuidado personal.\n\n**1.5.e — Conexión a SAP B1:**\n\nExiste conexión de lectura utilizada por el equipo de BI para reportes en Power BI mediante consultas directas a la base de datos SQL Server del backend de SAP B1. Canal abierto y aprobado por IT. Condición: cualquier conexión nueva debe ser de solo lectura y pasar por el servidor de reporting, no conectarse directamente al servidor productivo de SAP.\n\n---\n\n## FASE 1 — COMPLETADA [2026-05-14 10:00]\n\nTodas las secciones 1.1 a 1.5 capturadas. Informante principal: Juan Diego Rodriguez (SPONSOR).\n\n---\n\n## FASE 2 — Confirmación y profundización\n\n### 2.1 — Restricciones de tiempo y contexto [COMPLETADO 2026-05-14 10:05]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.1.a — Fecha límite para producción:**\n\nPara impactar el fill rate de diciembre necesitamos el modelo en producción antes del 1 de septiembre de 2026. Esa es la fecha límite real porque los planeadores necesitan al menos 3 meses de uso para que las órdenes influenciadas por el modelo se reflejen en el inventario disponible en diciembre. Hay una fecha de corte adicional: el cierre del presupuesto de compras Q4 se hace en la primera semana de octubre — si el modelo no está operando antes de eso, los planeadores harán ese ejercicio sin él y perderemos un ciclo completo.\n\n**2.1.b — Alineación con el CEO:**\n\nLa alineación con el CEO es un prerrequisito para comprometer presupuesto, pero no para iniciar. Podemos arrancar en paralelo con actividades que no requieran inversión: levantamiento de datos, análisis exploratorio, diseño de arquitectura. Si la reunión con el CEO resulta en un no, paramos. Si resulta en un sí con ajustes al alcance, los incorporamos.\n\n**2.1.c — Eventos de negocio próximos:**\n\nTres eventos relevantes. Primero, la temporada de Día de la Madre ya pasó (10 de mayo) — los datos del pico estarán frescos en SAP y son útiles para validar el modelo. Segundo, la temporada de mitad de año (junio-julio) tiene un pico moderado por el Día del Padre y promociones de vacaciones escolares — sería un buen primer caso de prueba real si el modelo está listo para entonces. Tercero, en agosto hay una auditoría interna de procesos de Supply Chain que podría consumir tiempo de Laura y los planeadores durante 2-3 semanas.\n\n---\n\n### 2.2 — Criterios de éxito, umbrales y adopción [COMPLETADO 2026-05-14 10:20]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.2.a — Criterios de adopción y período de prueba:**\n\nHabrá un período de prueba en paralelo de 6 semanas: los planeadores seguirán su proceso actual pero también verán las recomendaciones del modelo, y registrarán cuándo coinciden y cuándo difieren. La aceptación tiene dos componentes. Uno cuantitativo: el MAPE del forecast a 4 semanas debe ser inferior al 20% en los SKUs tipo A — ese es el umbral que se acordó con Carlos como técnicamente alcanzable y útil para el negocio. Uno cualitativo: Laura y Roberto deben declarar explícitamente que confían en usarlo como punto de partida. Si el número es bueno pero Roberto no confía, no hay adopción real. Ambos componentes son necesarios.\n\n**2.2.b — Zona gris del fill rate:**\n\n89% en diciembre no es fracaso ni éxito completo — es zona gris que requiere decisión. Criterio propuesto por el SPONSOR: si se llega a 89% o más, el proyecto continúa a fase 2 sin cuestionamiento. Si se llega entre 87% y 89%, se hace una revisión de causas antes de decidir continuidad. Si se queda por debajo de 87%, es un fracaso del proyecto. La autoridad para declarar fracaso es el SPONSOR, con input de Laura. El CEO entra solo si hay implicación presupuestaria de continuar o detener.\n\n**2.2.c — Intervenciones manuales como métrica:**\n\nLas intervenciones manuales de Roberto forman parte del criterio de éxito, pero no como restricción binaria. El sistema se considera exitoso en adopción si los planeadores lo usan como punto de partida aunque lo corrijan. Métrica a seguir: tasa de intervención. Expectativa en las primeras 6 semanas: 40% o más de las recomendaciones intervenidas — se considera normal. Si a los 6 meses la tasa de intervención sigue por encima del 30% en SKUs tipo A, es señal de que el modelo no está aprendiendo o hay variables no capturadas.\n\n**2.2.d — Autoridad para pasar a producción:**\n\nLa decisión de pasar de prueba a producción la toma el SPONSOR, con aval explícito de Laura. El Gerente de Compras debe ser informado pero no tiene veto. El CEO no necesita aprobar ese paso. Lo que sí requeriría escalar al CEO es si durante la prueba el alcance cambia significativamente o el presupuesto se excede.\n\n---\n\n### 2.3 — Dependencias, disponibilidad y riesgos operativos [COMPLETADO 2026-05-14 10:45]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.3.a — Dependencias de IT y datos:**\n\n1. El acceso al servidor de reporting requiere un proceso formal: Carlos debe enviar una solicitud a IT con el visto bueno del SPONSOR por correo. IT la procesa en 5-10 días hábiles y asigna credenciales de solo lectura. Este trámite debe iniciarse desde el primer día del proyecto.\n2. SAP B1 tiene una ventana de mantenimiento planificada en la primera semana de julio — actualizan el servidor de reporting en ese mismo período. Downtime estimado de 2 días. No es un bloqueo crítico pero hay que evitar extracciones masivas en esa semana.\n\n**2.3.b — Disponibilidad durante la prueba:**\n\n1. La auditoría de agosto consume a Laura aproximadamente el 60% de su tiempo durante 2-3 semanas. No puede participar activamente en la prueba al mismo tiempo. Recomendación del SPONSOR: iniciar la prueba piloto la última semana de agosto, con 5 semanas de prueba en paralelo hasta la primera semana de octubre. Eso queda justo para el cierre de presupuesto Q4.\n2. En septiembre hay una feria sectorial de logística donde Laura y el Gerente de Compras participan durante 3 días. Reduce disponibilidad esa semana pero no es bloqueante para la prueba.\n\n**2.3.c — Política de fuente de verdad:**\n\nEl SPONSOR tiene la autoridad para declarar la fuente de verdad y está dispuesto a hacerlo, pero necesita hacerlo con Laura y el Gerente de Compras presentes en la sala — no por encima de ellos. Se formalizará en la reunión de kick-off del proyecto, antes de que Carlos acceda a los datos. Si se llega al kick-off sin ese acuerdo, el proyecto no arranca. Es una condición de entrada, no un supuesto.\n\n**2.3.d — Riesgos de continuidad:**\n\n1. Carlos Méndez (TECNICO): sin planes de salida conocidos. Riesgo bajo.\n2. Laura Gómez (USUARIO): licencia de maternidad programada para febrero de 2027 — fuera del período crítico del proyecto. Riesgo bajo para el período de prueba.\n3. Roberto Sánchez (planeador senior, usuario clave): riesgo más real. Tiene conversaciones internas sobre una posible promoción a coordinador regional que lo sacaría del equipo de planeación. Probabilidad estimada baja para antes de octubre, pero no es cero. Si ocurre, se pierde al usuario más influyente justo antes del cierre del año. No hay plan de contingencia para ese escenario actualmente.\n\n---\n\n### 2.4 — Alcance, límites del sistema e integraciones [COMPLETADO 2026-05-14 11:00]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.4.a — Alcance geográfico y de portafolio:**\n\nPiloto focalizado: 3 bodegas principales (Bogotá, Medellín y Cali) que concentran el 70% del volumen, y los 300 SKUs tipo A. Una vez validado el modelo en ese subconjunto, se extiende al resto. Lanzar con 12 bodegas y 1.800 SKUs desde el inicio es un riesgo innecesario.\n\n**2.4.b — Límites del sistema:**\n\nLos cinco elementos están todos fuera de v1: (1) optimización de rutas, (2) gestión de contratos con proveedores, (3) gestión de promociones (solo input, no planeación), (4) reposición inter-bodega (extensión natural para v2), (5) forecasting para e-commerce. Límite adicional explícito: el modelo no genera órdenes de compra directamente en SAP, solo recomendaciones. La entrada en SAP la hace el planeador manualmente. No negociable en v1.\n\n**2.4.c — Fuentes de datos que entran al modelo:**\n\nEl Excel de promociones del área comercial entra como input desde v1 — demasiado importante para SKUs tipo A donde las promociones pueden duplicar la demanda. Carlos define un proceso liviano de carga semanal de ese Excel hasta que exista integración formal. Las 4 temporadas las modela Carlos como variables calendario codificadas — fechas conocidas y estables, sin fuente externa. Precios de lista en SAP entran como variable. Descuentos por acuerdo comercial quedan fuera de v1, excepto descuentos de canal moderno (en contratos físicos) — Carlos evalúa si vale la pena digitalizarlos.\n\n**2.4.d — Integraciones de salida:**\n\nDashboard construido sobre Power BI — infraestructura ya existe, planeadores ya tienen licencias. Carlos construye datasets y transformaciones; equipo de BI apoya con diseño de vistas. Recomendaciones de orden no se conectan a SAP en v1 — el planeador las ve en Power BI y las entra manualmente (intencional, para construir confianza). El CFO y el Gerente de Compras necesitan vista agregada separada (capital de trabajo proyectado y fill rate esperado por categoría) — mismo workspace de Power BI pero reporte diferente y permisos separados.\n\n---\n\n### 2.5 — Arquitectura técnica y modelo [COMPLETADO 2026-05-14 11:15]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.5.a — Plataforma cloud:**\n\nSuscripción activa de Microsoft Azure contratada hace 18 meses para otros proyectos de analytics. IT ya aprobó ese entorno para datos de la compañía y tiene los acuerdos de seguridad firmados. Salir de Azure requeriría un proceso de aprobación de seguridad que tomaría meses. Carlos trabajará en Azure — no está en discusión.\n\n**2.5.b — Frecuencia de actualización:**\n\nSemanal es suficiente para v1. Proceso schedulado automáticamente los domingos en la noche, resultados listos el lunes a las 7am. Si el proceso falla, debe haber alerta automática a Carlos y a Laura antes de las 6am del lunes. No puede depender de ejecución manual.\n\n**2.5.c — Restricción de interpretabilidad:**\n\nNo se limita a modelos lineales. Carlos puede usar XGBoost o LightGBM si el dashboard muestra, para cada SKU, los tres principales drivers del forecast esa semana — explicación a nivel de predicción individual (no solo feature importances globales). Ejemplo: \"la demanda proyectada es alta principalmente por proximidad a temporada de Navidad y por incremento en ventas de las últimas 3 semanas\". No hay restricción regulatoria ni de auditoría.\n\n**2.5.d — Arquitectura de datos:**\n\nTres capas: (1) extracción desde SAP hacia Azure Data Lake Storage, (2) transformación y entrenamiento en Azure ML, (3) publicación de resultados hacia dataset de Power BI vía Azure SQL Database. Carlos diseña y construye el pipeline. Mantenimiento operativo post-producción lo asume el equipo de BI con soporte de Carlos para cambios en el modelo. IT solo entra si hay problemas de infraestructura en Azure.\n\n**2.5.e — Mecanismo de override:**\n\nFuncionalidad que Carlos debe diseñar explícitamente — no edición directa en Power BI (se necesita trazabilidad). Tabla de overrides en Azure SQL Database donde el planeador registra: SKU, semana, forecast original del modelo, forecast ajustado, y motivo en texto libre. Power BI muestra ambos valores en paralelo. El forecast ajustado alimenta la recomendación de orden; el forecast original siempre queda visible. Permite comparar sistemáticamente dónde el modelo se equivoca vs. dónde Roberto se equivoca — alimenta iteraciones de mejora.\n\n---\n\n### 2.6 — Gestión del cambio y comunicación [COMPLETADO 2026-05-14 11:30]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.6.a — Plan de comunicación y lanzamiento:**\n\nComunicación en dos fases: primero reunión privada con Laura y Roberto antes del kick-off (co-diseño del mecanismo de override — que sientan que son parte del diseño, no receptores de solución impuesta). Dos semanas después, presentación general al equipo. Narrativa deliberada: \"el modelo aprende de su experiencia — cada vez que ustedes lo corrigen, se vuelve más inteligente\". No se habla de eficiencia ni reducción de tiempo inicialmente (activa miedo a ser reemplazados). Para Roberto: necesita ver una demo con datos de sus propios SKUs antes del piloto, no datos genéricos.\n\n**2.6.b — Capacitación y onboarding:**\n\nResponsabilidad de Carlos con apoyo de Laura. Formato: dos sesiones de 2 horas con casos reales del negocio, no presentaciones teóricas. Tiempo máximo: 4 horas de capacitación formal más práctica durante las 5 semanas de prueba. La herramienta debe ser suficientemente intuitiva para que el onboarding ocurra durante el uso. Campeón interno: Andrés Torres, planeador de bebidas, 2 años en el equipo, perfil analítico, ya usa tablas dinámicas avanzadas y ha preguntado espontáneamente sobre machine learning.\n\n**2.6.c — Gestión de la resistencia activa:**\n\nEstrategia en tres escalones: (1) primeras dos semanas — Laura tiene conversación directa mostrando datos de intervenciones vs. modelo; (2) semana tres — SPONSOR tiene conversación uno a uno con Roberto; (3) semana cinco — si Roberto sigue bloqueando activamente y otros lo siguen, decisión ejecutiva: continúa piloto con Andrés como referente principal y se gestiona situación de Roberto por separado con RRHH. Punto de no retorno: si Roberto influye activamente para que otros planeadores no usen la herramienta.\n\n**2.6.d — Comunicación hacia arriba:**\n\nReporte al CEO solo en hitos clave (kick-off confirmado, modelo en prueba piloto, resultado de diciembre). Si algo sale mal entre hitos, se comunica proactivamente. Narrativa para fill rate insuficiente por razones externas: separar desempeño del modelo (precisión del forecast, adopción) del desempeño del negocio (fill rate con otras variables). Esta distinción se establece desde el kick-off con el CEO para que no sea sorpresa en diciembre.\n\n---\n\n### 2.7 — Presupuesto y restricciones financieras [COMPLETADO 2026-05-14 11:45]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.7.a — Presupuesto disponible:**\n\nNo está formalmente aprobado — la aprobación ocurre en la reunión con el CEO la próxima semana. Rango interno: COP 150 a COP 300 millones para todo el proyecto hasta diciembre de 2026 (incluye infraestructura Azure, tiempo de Carlos y componentes externos menores). Por encima de COP 300 millones requeriría aprobación de junta, lo que alargaría los tiempos significativamente.\n\n**2.7.b — Distribución de la inversión:**\n\nMayor costo: tiempo de Carlos (70-80% de su capacidad durante los primeros 4 meses). Servicios Azure estimados entre COP 8 y COP 15 millones mensuales. Sin consultoría externa (aprendizaje del episodio del ERP). Sin presupuesto formal para change management más allá del tiempo interno de Laura y Carlos. Si se identifica necesidad de apoyo externo durante el proyecto, se escala al CEO.\n\n**2.7.c — Base de la aprobación:**\n\nLa ecuación de ROI existe internamente (construida por Carlos y el SPONSOR) pero no ha sido presentada formalmente a la junta. La aprobación del CEO se basará principalmente en el argumento estratégico: fill rate como objetivo de la compañía y riesgo de perder contratos de canal moderno. El ROI se usa como respaldo si preguntan, no como argumento principal.\n\n**2.7.d — Restricciones fiscales y contables:**\n\nPresupuesto debe ejecutarse en año fiscal 2026 — no hay posibilidad de arrastrar partidas a 2027. Si el proyecto no arranca antes de junio, la ventana de ejecución se acorta y el presupuesto puede ser reasignado en la revisión de mitad de año de julio. Umbral de licitación formal: COP 200 millones en un solo contrato con proveedor externo — no aplica porque no hay contratos externos de ese tamaño. Servicios Azure se contratan a través del acuerdo corporativo existente.\n\n---\n\n### 2.8 — Definición de éxito, fracaso y transferencia [COMPLETADO 2026-05-14 12:00]\n\n**Informante:** Juan Diego Rodriguez (SPONSOR)\n\n**2.8.a — Declaración de éxito al cierre:**\n\nEl éxito tiene tres elementos definidos. (1) Fill rate sube de 87% a al menos 91% y los dos contratos de canal moderno están seguros. (2) Los planeadores usan el sistema todas las semanas porque les ayuda — adopción genuina, no forzada. (3) Capacidad instalada que no depende de Carlos como única persona con conocimiento del sistema. Si los tres elementos están presentes: éxito completo. Si el fill rate llega a 90% pero hay adopción genuina y pipeline estable, también es éxito. Lo que no puede venderse como éxito: un modelo técnicamente bueno que nadie usa.\n\n**2.8.b — Condición de fracaso inapelable:**\n\nTres condiciones de parada. (1) Fill rate por debajo de 87% (ya definido en 2.2). (2) Si los datos de SAP tienen problemas de integridad tan severos que el modelo aprende sobre datos incorrectos y sus recomendaciones son peores que el criterio humano. (3) Si el equipo de planeación sabotea activamente el proyecto — intervenciones ficticias, datos incorrectos ingresados al sistema. Esa tercera condición es un problema organizacional, no de data science, y no puede resolverse con más iteraciones del modelo.\n\n**2.8.c — Transferencia y sostenibilidad:**\n\nDueño operativo a partir de enero de 2027: Laura Gómez, con soporte técnico del equipo de BI para el pipeline. Carlos debe dejar al menos un analista de BI con capacidad de: (1) modificar parámetros del modelo, (2) reentrenarlo con datos nuevos, (3) diagnosticar fallos — sin necesidad de rediseñarlo desde cero. La transferencia de conocimiento debe ocurrir de forma activa durante el desarrollo, no al final como entregable de cierre. Criterio de fracaso de transferencia: si en enero de 2027 el sistema solo puede ser mantenido por Carlos, el proyecto no terminó bien.\n\n**2.8.d — Gestión del conocimiento y documentación:**\n\nTres entregables obligatorios antes de la entrega final: (1) Documentación técnica del pipeline y modelo para equipo de BI — arquitectura, decisiones de diseño, cómo reentrenar. (2) Guía de usuario del dashboard para planeadores — cómo interpretar el forecast, cómo registrar un override, qué hacer cuando el modelo falla. (3) Documento de criterios de monitoreo del modelo para Laura — cuándo el modelo se degrada, qué métricas observar, cuándo escalar. Sin estándar corporativo para este tipo de documentación; Carlos define el formato con validación del SPONSOR. La documentación es prerrequisito para la entrega final, no un artefacto post-cierre.\n\n**2.8.e — Lecciones del ERP y compromisos del sponsor:**\n\nCuatro patrones del episodio del ERP que no deben repetirse: (1) No presentar soluciones terminadas — los planeadores participan en revisiones intermedias desde el análisis exploratorio. (2) No prometer granularidad que el modelo no puede cumplir — si no funciona bien en algún SKU o bodega, se dice explícitamente desde el inicio. (3) No desaparecer como sponsor — el SPONSOR se compromete a revisión mensual con Laura y Carlos y a estar disponible para decisiones de alcance. (4) No ignorar señales tempranas de resistencia. Compromiso explícito del SPONSOR: atención real, no solo firma en el kick-off.\n\n---\n\n## FASE 2 — COMPLETADA [2026-05-14 12:00]\n\nTodas las secciones 2.1 a 2.8 capturadas. Informante principal: Juan Diego Rodriguez (SPONSOR).\n\n\n"},{"label":"SU Sprint Contract","filename":"su_sprint_contract.md","content":"# Sprint Contract — SU.md\n**Proyecto:** [A completar por el SPONSOR]\n**Fecha de inicio:** 2026-05-14\n**Sprint objetivo:** Producir el documento SU.md (Statement of Understanding) aprobado por el stakeholder.\n\n---\n\n## Roles y disponibilidad\n\n| Rol | Nombre | Cargo | Disponibilidad |\n|-----|--------|-------|----------------|\n| SPONSOR | [Pendiente] | [Pendiente] | [Pendiente] |\n| TECNICO | [Pendiente] | [Pendiente] | [Pendiente] |\n| USUARIO | [Pendiente] | [Pendiente] | [Pendiente] |\n\n---\n\n## Alcance del sprint\n\n- Conducir Fase 0 (mapa de stakeholders)\n- Conducir Fase 1 de entrevista (secciones 1.1–1.5)\n- Conducir Fase 2 de entrevista (secciones 2.1–2.8)\n- Ejecutar análisis de gaps (su_needs_analyzer)\n- Generar draft SU.md (su_synthesizer)\n- Evaluar draft (su_evaluator + doc_auditor en paralelo)\n- Obtener aprobación del stakeholder\n\n---\n\n## Criterios de terminado\n\n- [ ] `governance/su/su_interview.md` completado (Fase 0 + Fase 1 + Fase 2)\n- [ ] `governance/su/su_knowledge_gaps.md` con confidence_score >= umbral por complejidad\n- [ ] `governance/su/su_draft_v{n}.md` con score >= 0.8 en su_evaluator\n- [ ] `governance/su/su_approved.md` creado y aprobado por stakeholder\n\n---\n\n## Compromisos del stakeholder\n\n- Disponibilidad para Fase 1: [Pendiente]\n- Disponibilidad para Fase 2: [Pendiente]\n- Tiempo de respuesta esperado para aprobación: [Pendiente]\n\n---\n\n## Notas\n\n[A completar durante el sprint]\n"}]};
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function statusBadgeHtml(status) {
+  const map = {
+    approved: ['badge-approved','Aprobado'],
+    in_progress: ['badge-progress','En progreso'],
+    rejected: ['badge-rejected','Rechazado'],
+    pending: ['badge-pending','Pendiente'],
+  };
+  const [cls, label] = map[status] || ['badge-pending', status];
+  return `<span class="badge ${cls}"><span class="dot"></span>${label}</span>`;
+}
+
+// ── Global badge ──────────────────────────────────────────────────────────────
+(function setGlobalBadge() {
+  const pipeline = HARNESS_DATA.pipeline || [];
+  const total = pipeline.length;
+  const approved = pipeline.filter(d => d.status === 'approved').length;
+  const inProgress = pipeline.filter(d => d.status === 'in_progress').length;
+  const el = document.getElementById('global-badge');
+  if (approved === total) {
+    el.className = 'badge badge-approved';
+    el.innerHTML = '<span class="dot"></span> Completado';
+  } else if (inProgress > 0 || approved > 0) {
+    el.className = 'badge badge-progress';
+    el.innerHTML = `<span class="dot"></span> ${approved}/${total} documentos aprobados`;
+  } else {
+    el.className = 'badge badge-pending';
+    el.innerHTML = `<span class="dot"></span> Iniciando — 0/${total} aprobados`;
+  }
+})();
+
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+(function renderPipeline() {
+  const grid = document.getElementById('pipeline-grid');
+  const chipMap = {approved:'chip-approved',in_progress:'chip-in_progress',rejected:'chip-rejected',pending:'chip-pending'};
+  const labelMap = {approved:'Aprobado',in_progress:'En progreso',rejected:'Rechazado',pending:'Pendiente'};
+  grid.innerHTML = (HARNESS_DATA.pipeline || []).map(doc => {
+    const scoreHtml = doc.final_score != null
+      ? `<div class="doc-score">${doc.final_score.toFixed(2)}</div>`
+      : `<div class="doc-score" style="color:#94a3b8;font-size:1rem">&mdash;</div>`;
+    const meta = [
+      doc.iteration_count > 0 ? `${doc.iteration_count} iter.` : null,
+      doc.approved_date ? `${doc.approved_date}` : null,
+      doc.complexity ? doc.complexity.toUpperCase() : null,
+    ].filter(Boolean).join(' &middot; ');
+    return `<div class="doc-card status-${doc.status}">
+      <div class="doc-name">${esc(doc.label)}</div>
+      ${scoreHtml}
+      <div class="doc-meta">${meta || '&mdash;'}</div>
+      <span class="doc-status-chip ${chipMap[doc.status]||'chip-pending'}">${labelMap[doc.status]||doc.status}</span>
+    </div>`;
+  }).join('');
+})();
+
+// ── Pipeline phases ───────────────────────────────────────────────────────────
+(function renderPhases() {
+  const pipeline = HARNESS_DATA.pipeline || [];
+  const withPhases = pipeline.filter(d => d.completed_phases && d.completed_phases.length > 0);
+  if (!withPhases.length) return;
+
+  const chipMap = {approved:'chip-approved',in_progress:'chip-in_progress',rejected:'chip-rejected',pending:'chip-pending'};
+  const labelMap = {approved:'Aprobado',in_progress:'En progreso',rejected:'Rechazado',pending:'Pendiente'};
+
+  const container = document.createElement('div');
+  container.className = 'phases-section';
+
+  const sectionLabel = document.createElement('p');
+  sectionLabel.className = 'section-label';
+  sectionLabel.style.marginTop = '1.75rem';
+  sectionLabel.textContent = 'Fases completadas por documento';
+  container.appendChild(sectionLabel);
+
+  withPhases.forEach(doc => {
+    const titleEl = document.createElement('div');
+    titleEl.className = 'phases-doc-title';
+    titleEl.innerHTML = `${esc(doc.label)} <span class="phase-doc-badge ${chipMap[doc.status]||'chip-pending'}">${labelMap[doc.status]||doc.status}</span>`;
+    container.appendChild(titleEl);
+
+    const list = document.createElement('div');
+    list.className = 'phases-list';
+    doc.completed_phases.forEach(ph => {
+      const row = document.createElement('div');
+      row.className = 'phase-row';
+      row.innerHTML = `<span class="phase-icon">✅</span><span class="phase-label">${esc(ph.label)}</span>`;
+      list.appendChild(row);
+    });
+    container.appendChild(list);
+    container.appendChild(Object.assign(document.createElement('div'), {style:'margin-bottom:1rem'}));
+  });
+
+  document.getElementById('tab-pipeline').appendChild(container);
+})();
+
+// ── Timeline ──────────────────────────────────────────────────────────────────
+(function initTimeline() {
+  const sel = document.getElementById('filter-agent');
+  const agents = [...new Set((HARNESS_DATA.timeline || []).map(e => e.agent))].sort();
+  agents.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    sel.appendChild(opt);
+  });
+  renderTimeline();
+})();
+
+function renderTimeline() {
+  const agentFilter = document.getElementById('filter-agent').value;
+  const textFilter = document.getElementById('filter-text').value.toLowerCase();
+  const events = (HARNESS_DATA.timeline || []).filter(e => {
+    if (agentFilter && e.agent !== agentFilter) return false;
+    if (textFilter && !e.message.toLowerCase().includes(textFilter)) return false;
+    return true;
+  });
+  const list = document.getElementById('tl-list');
+  if (!events.length) {
+    list.innerHTML = '<div class="tl-empty">Sin eventos que coincidan con el filtro.</div>';
+    return;
+  }
+  list.innerHTML = events.map(e => {
+    const chipClass = `tl-agent-chip agent-${e.agent in {'doc_orchestrator':1,'su_interviewer':1,'su_synthesizer':1,'su_evaluator':1,'su_needs_analyzer':1,'doc_auditor':1,'harness_director':1} ? e.agent : 'default'}`;
+    return `<div class="tl-row">
+      <span class="tl-ts">${esc(e.timestamp)}</span>
+      <span class="${chipClass}">${esc(e.agent)}</span>
+      <span class="tl-msg">${esc(e.message)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Scores ────────────────────────────────────────────────────────────────────
+(function renderScores() {
+  const el = document.getElementById('scores-content');
+  const scores = HARNESS_DATA.scores || [];
+  if (!scores.length) {
+    el.innerHTML = '<div class="score-empty">No hay scores disponibles aún. Se generan cuando el primer documento es evaluado.</div>';
+    return;
+  }
+  el.innerHTML = scores.map(doc => {
+    const threshold = doc.threshold || 0.80;
+    const threshPct = (threshold * 100).toFixed(0);
+
+    const versionsHtml = doc.versions.map(v => {
+      const ok = v.score >= threshold;
+      return `<div class="score-version-badge ${ok ? 'score-version-ok' : 'score-version-fail'}">${esc(v.version)}: ${v.score.toFixed(2)}</div>`;
+    }).join('');
+
+    const dimsHtml = doc.dimensions.map(d => {
+      const pct = (d.score * 100).toFixed(0);
+      const ok = d.score >= threshold;
+      const threshLeft = `calc(${threshPct}% - 1px)`;
+      return `<div class="score-dim-row">
+        <span class="score-dim-name">${esc(d.dimension)}</span>
+        <div class="score-bar-wrap">
+          <div class="score-bar ${ok ? 'score-bar-ok' : 'score-bar-fail'}" style="width:${pct}%"></div>
+          <div class="score-bar-threshold" style="left:${threshLeft}" title="Umbral ${threshold}"></div>
+        </div>
+        <span class="score-dim-val" style="color:${ok?'#15803d':'#dc2626'}">${d.score.toFixed(2)}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="score-doc-block">
+      <div class="score-doc-title">${esc(doc.doc)} <span style="font-size:.75rem;color:#94a3b8;font-weight:500">umbral ${threshold}</span></div>
+      <div class="score-versions">${versionsHtml}</div>
+      ${doc.dimensions.length ? `<p class="section-label" style="margin-bottom:.75rem">Scores por dimensión</p><div class="score-dims">${dimsHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+})();
+
+// ── Metrics ───────────────────────────────────────────────────────────────────
+(function renderMetrics() {
+  const tbody = document.getElementById('metrics-tbody');
+  const opLabel = {lt:'<', gt:'>', lte:'≤', gte:'≥', eq:'='};
+  const statusEmoji = {OK:'✅', ALERTA:'⚠️', 'N/A':'—'};
+  tbody.innerHTML = (HARNESS_DATA.metrics || []).map(m => {
+    const valHtml = m.value != null
+      ? `<span class="metric-val">${m.value}</span>`
+      : `<span class="metric-val-na">—</span>`;
+    const threshHtml = m.threshold_val != null
+      ? `<span class="threshold-txt">${opLabel[m.threshold_op]||m.threshold_op} ${m.threshold_val}</span>`
+      : '<span class="threshold-txt">—</span>';
+    const catCls = `cat-chip cat-${m.category}`;
+    return `<tr>
+      <td style="font-size:.75rem;font-weight:700;color:#0f172a;white-space:nowrap">${esc(m.id)}</td>
+      <td><span class="${catCls}">${esc(m.category)}</span></td>
+      <td style="max-width:280px">${esc(m.description)}</td>
+      <td>${valHtml}</td>
+      <td>${threshHtml}</td>
+      <td class="metric-status">${statusEmoji[m.status]||'—'}</td>
+    </tr>`;
+  }).join('');
+})();
+
+// ── Alerts ────────────────────────────────────────────────────────────────────
+(function renderAlerts() {
+  const el = document.getElementById('alerts-content');
+  const alerts = HARNESS_DATA.alerts || [];
+  const alertCount = document.getElementById('alert-count');
+  if (alerts.length) {
+    alertCount.textContent = `(${alerts.length})`;
+    alertCount.style.background = '#fee2e2';
+    alertCount.style.color = '#b91c1c';
+    alertCount.style.borderRadius = '9999px';
+    alertCount.style.padding = '0 .4rem';
+    alertCount.style.fontSize = '.65rem';
+    alertCount.style.fontWeight = '700';
+  }
+
+  if (!alerts.length) {
+    el.innerHTML = '<div class="no-alerts">✅ Sin alertas activas &mdash; harness funcionando correctamente</div>';
+    return;
+  }
+  const failures = alerts.filter(a => a.type === 'failure');
+  const pending = alerts.filter(a => a.type === 'pending_change');
+
+  let html = '';
+  if (failures.length) {
+    html += `<div class="alerts-section">
+      <p class="alerts-section-title">Fallos del harness (${failures.length})</p>
+      ${failures.map(a => `<div class="alert-card type-failure">
+        <div class="alert-title">${esc(a.title)}</div>
+        ${a.description ? `<div class="alert-desc">${esc(a.description)}</div>` : ''}
+        <div class="alert-meta">${a.agent ? esc(a.agent) : ''} ${a.timestamp ? '· ' + esc(a.timestamp) : ''}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+  if (pending.length) {
+    html += `<div class="alerts-section">
+      <p class="alerts-section-title">Cambios de prompt pendientes de aprobación (${pending.length})</p>
+      ${pending.map(a => `<div class="alert-card type-pending_change">
+        <div class="alert-title">${esc(a.title)}</div>
+        ${a.description ? `<div class="alert-desc">${esc(a.description)}</div>` : ''}
+        <div class="alert-meta">${a.agent ? esc(a.agent) : ''}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+  el.innerHTML = html;
+})();
+
+// ── Artifacts ─────────────────────────────────────────────────────────────────
+(function renderArtifacts() {
+  const artifacts = HARNESS_DATA.artifacts || [];
+  const listEl = document.getElementById('artifact-list');
+  if (!artifacts.length) {
+    listEl.innerHTML = '<div style="font-size:.82rem;color:#94a3b8">Sin artefactos disponibles.</div>';
+    return;
+  }
+  listEl.innerHTML = artifacts.map((a, i) =>
+    `<button class="artifact-btn${i===0?' active':''}" onclick="selectArtifact(${i},this)">${esc(a.label)}</button>`
+  ).join('');
+  if (artifacts.length) selectArtifact(0, listEl.querySelector('.artifact-btn'));
+})();
+
+function selectArtifact(idx, btn) {
+  document.querySelectorAll('.artifact-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const a = (HARNESS_DATA.artifacts || [])[idx];
+  if (!a) return;
+  document.getElementById('artifact-viewer-title').textContent = a.label;
+  document.getElementById('artifact-viewer-filename').textContent = a.filename;
+  document.getElementById('artifact-viewer-content').innerHTML = `<pre>${esc(a.content)}</pre>`;
+}
+</script>
+
+</body>
+</html>

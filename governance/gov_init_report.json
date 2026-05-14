@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-05-14T09:55:17",
+  "status": "ok",
+  "checks": {
+    "state_files_valid": true,
+    "state_files_readable": true,
+    "git_available": true,
+    "governance_su_dir_exists": true,
+    "sprint_contract_exists": true,
+    "github_remote_configured": true,
+    "github_remote_reachable": true,
+    "filesystem_consistent": true
+  },
+  "inconsistencies": [],
+  "recommended_action": "proceed_normal"
+}
