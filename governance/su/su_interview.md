@@ -317,4 +317,268 @@ Cuatro patrones del episodio del ERP que no deben repetirse: (1) No presentar so
 
 Todas las secciones 2.1 a 2.8 capturadas. Informante principal: Juan Diego Rodriguez (SPONSOR).
 
+---
+
+## FASE 2.T — Entrevista técnica [COMPLETADO 2026-05-14 12:30 - EN CURSO]
+
+### 2.T.1 — Estructura y volumen de datos [COMPLETADO 2026-05-14 13:00]
+
+**2.T.1.a — Confiabilidad del histórico en SAP B1: análisis crítico**
+
+**Pregunta:** En términos de volumen, ¿cuál es realmente el histórico confiable que puedes usar para entrenar el modelo? Más allá de los 6 años nominales que mencionó Juan Diego, ¿cuál es tu estimación realista en meses de datos usables por SKU tipo A?
+
+**Respuesta:** Siendo honesto: si entreno hoy con lo que hay en SAP B1 sin trabajo previo de limpieza, el historial confiable promedio por SKU es de aproximadamente 28 a 32 meses — no 6 años. Esto por tres razones acumuladas.
+
+La migración de 2020-2021 elimina efectivamente 4 meses de historia para la mayoría de SKUs, y para algunos productos que se relanzaron en ese período el historial pre-migración no es comparable con el post-migración — no son la misma serie de tiempo.
+
+Los códigos de devolución incorrectos afectan principalmente los SKUs de alta rotación, que paradójicamente son los más importantes para el modelo. Hasta que no hagamos una reconciliación con los Excel de los planeadores, no puedo cuantificar exactamente el sesgo, pero mi estimación conservadora es que entre el 8% y el 15% de las salidas registradas en SAP para SKUs tipo A tienen ruido por este problema.
+
+El tercer factor es la distribución por antigüedad del portafolio: de los 300 SKUs tipo A, aproximadamente 60 fueron introducidos después de 2022 y tienen menos de 3 años de historia. Para esos SKUs necesito estrategias diferentes — cold start con datos de productos similares o modelos más simples mientras acumulan historia.
+
+Mi recomendación antes de tocar el modelo: dedicar las primeras 3 semanas del proyecto exclusivamente a auditoría y limpieza de datos. Sin eso, cualquier número de MAPE que reporte será sobre datos sucios y no será reproducible en producción.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+**2.T.1.b — Formato, acceso y pipeline de extracción**
+
+**Pregunta:** ¿Cómo accedes exactamente a esos datos? ¿Qué formato tienen, cuál es el patrón de acceso que usarás?
+
+**Respuesta:** El servidor de reporting expone las tablas de SAP B1 directamente vía SQL Server — no hay una capa de abstracción intermedia ni cubos OLAP. El equipo de BI ya hace queries directas a ese servidor para alimentar sus reportes de Power BI, así que el patrón de acceso está establecido y yo puedo replicarlo.
+
+Las tablas relevantes para el modelo son conocidas en el ecosistema SAP B1: OITM para maestro de productos, OINM para movimientos de inventario, ORDR y RDR1 para órdenes de venta, y OPOR/POR1 para órdenes de compra. El problema es que SAP B1 no fue diseñado para queries analíticas — las tablas están normalizadas para transacciones, no para series de tiempo. Construir la serie de demanda diaria por SKU y bodega requiere joins no triviales y lógica de negocio para distinguir salidas reales de devoluciones, traslados inter-bodega y ajustes de inventario.
+
+Mi plan de extracción es escribir queries SQL parametrizadas que generen una tabla plana de demanda diaria por SKU-bodega, y persistir esa tabla en Azure Data Lake como capa de staging. Desde ahí trabajo en Python con pandas y posteriormente con las librerías de forecasting. No proceso directo desde SAP al modelo — siempre con capa intermedia para no repetir la extracción cada vez que reentreno.
+
+Una advertencia adicional: el equipo de IT pidió que las queries no corran en horas pico del servidor de reporting — entre 7am y 6pm. La extracción semanal debe programarse en horario nocturno, lo que es perfectamente compatible con el schedule dominical que propuso Juan Diego.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+**2.T.1.c — Estimación realista de SKUs tipo A con historial limpio y suficiente**
+
+**Pregunta:** De los 300 SKUs tipo A, después de la auditoría y limpieza inicial, ¿cuántos puedo usar realmente para entrenar el modelo en v1 con confianza razonable?
+
+**Respuesta:** Mi estimación realista después de las 3 semanas de auditoría: entre 210 y 230 SKUs tipo A con 24 meses o más de historial limpio y utilizable — eso es entre el 70% y el 77% de los 300 SKUs tipo A del piloto.
+
+Los 70 a 90 SKUs restantes caen en tres categorías problemáticas. Unos 60 son productos introducidos después de 2022 con historia insuficiente. Unos 20 tienen el problema de devoluciones tan severo que la reconciliación con los Excel puede no ser suficiente para limpiarlos completamente. Y unos 10 a 15 estuvieron en quiebre de stock prolongado durante 2021-2022 — su historial existe pero está censurado, la demanda real no se observa porque no había producto disponible.
+
+Mi recomendación para el entrenamiento inicial: arrancar con los 210 SKUs limpios, que representan aproximadamente el 85% del volumen de ventas de los SKUs tipo A. Los SKUs con historia insuficiente los manejo con un modelo de fallback más simple — promedio móvil ajustado por estacionalidad — y los etiqueto explícitamente en el dashboard para que los planeadores sepan que esos forecasts son menos confiables. No los excluyo del sistema, pero sí soy transparente sobre la calidad de la predicción. Eso también abona a la credibilidad con Roberto — mejor decir 'este SKU tiene forecast de baja confianza' que presentar un número con falsa precisión.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+### 2.T.1 — Estructura y volumen de datos [COMPLETADO 2026-05-14 13:15]
+
+---
+
+### 2.T.2 — Calidad y completitud [EN PROGRESO]
+
+**2.T.2.a — Períodos con datos incompletos o de menor calidad [COMPLETADO 2026-05-14 14:15]**
+
+**Pregunta:** En el histórico que revisaste, ¿hay períodos específicos donde los datos podrían estar incompletos, con menor calidad, o donde simplemente el nivel de cobertura o consistencia cambia de forma notoria?
+
+**Respuesta:** Identifico cinco períodos con señales de alerta que documentaré formalmente durante la auditoría:
+
+Marzo–junio 2020: inicio de pandemia. Las ventas tuvieron comportamiento atípico extremo — quiebres masivos en algunas categorías y sobredemanda en otras. Ese período existe en SAP pero no es representativo de la demanda normal del negocio. Lo incluiré en el entrenamiento pero con una variable indicadora de anomalía para que el modelo no aprenda ese patrón como estacional.
+
+Octubre 2020–febrero 2021: migración de SAP. Como mencioné, 4 meses con registros incompletos. Para los SKUs afectados voy a imputar con interpolación donde sea posible, y donde no, voy a truncar el historial y usar solo datos post-migración — prefiero menos datos limpios que más datos sucios.
+
+Diciembre 2021–enero 2022: hubo un problema logístico nacional por paro de transportadores que afectó los despachos durante 3 semanas. Las salidas de SAP de ese período reflejan restricción de oferta, no demanda real. Necesito confirmación de Laura sobre las fechas exactas para enmascarar ese período.
+
+Semanas de inventario cero por SKU: dispersos a lo largo de toda la serie. Son los períodos de quiebre de stock que mencioné — la demanda observada es cero pero la demanda real no lo era. Voy a usar los datos de órdenes de venta rechazadas o pendientes de SAP para intentar reconstruir la demanda latente donde sea posible.
+
+Datos de 2019: el año más antiguo tiene menor granularidad en algunos registros — sospecho que el SAP anterior al actual tenía configuraciones diferentes. Lo usaré con cautela y lo excluiré si durante la auditoría confirmo inconsistencias estructurales.
+
+En resumen: el historial realmente utilizable sin intervención especial es 2022-2025. Todo lo anterior requiere tratamiento explícito caso a caso.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+---
+
+**2.T.2.b — Estrategia de imputación y tratamiento de datos faltantes [COMPLETADO 2026-05-14 14:35]**
+
+**Pregunta:** De esos períodos problemáticos, ¿cuál es tu estrategia específica de imputación o exclusión? ¿Hay períodos que definitivamente no usarás, y hay períodos donde intentarás reconstruir datos usando métodos estadísticos o datos externos?
+
+**Respuesta:** Trabajo con tres niveles de tratamiento según la naturaleza del problema:
+
+**Exclusión definitiva — sin intento de recuperación:**
+Los 4 meses de migración SAP (octubre 2020–febrero 2021) para SKUs con registros incompletos superiores al 40% de las semanas del período. No vale la pena imputar cuando la mayoría del período está ausente — el riesgo de introducir sesgo sistemático es mayor que el beneficio de tener más historia. Esos SKUs simplemente arrancan su serie en marzo 2021.
+
+**Enmascaramiento con variable indicadora — incluyo pero controlo:**
+Marzo–junio 2020 (pandemia) y diciembre 2021–enero 2022 (paro transportadores). Los datos existen y están en SAP pero son atípicos. Los incluyo en el entrenamiento con una variable binaria de 'período anómalo' para que el modelo aprenda a ignorarlos como patrón recurrente. Esta estrategia es preferible a excluirlos porque algunos modelos de series de tiempo se desestabilizan cuando hay saltos temporales en la serie.
+
+**Reconstrucción activa — intento recuperar demanda real:**
+Períodos de quiebre de stock donde la demanda observada es cero pero la demanda real existía. Aquí tengo dos fuentes posibles para reconstruir: primero, las órdenes de venta en SAP que quedaron pendientes o fueron rechazadas durante el quiebre — esas representan demanda insatisfecha documentada. Segundo, para SKUs donde no hay órdenes pendientes, usaré interpolación basada en el comportamiento de SKUs similares de la misma categoría que no tuvieron quiebre en el mismo período. No es perfecta pero es mejor que dejar ceros que el modelo interpretará como demanda real nula.
+
+**2019 — decisión diferida a la auditoría:**
+No tomo decisión sobre 2019 hasta revisar los datos. Si la auditoría confirma inconsistencias estructurales, lo excluyo completamente. Si los datos son comparables con períodos posteriores, los incluyo con variable indicadora de 'año base antiguo'. No comprometo esa decisión antes de ver los datos.
+
+**Aclaración metodológica importante:** Toda decisión de imputación o exclusión queda documentada en un data lineage log — qué se modificó, por qué, y qué impacto tiene en el volumen de entrenamiento. Eso es no negociable para mí tanto por reproducibilidad técnica como porque Laura y Roberto van a preguntar por qué el modelo no usa todos los datos disponibles.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+---
+
+**2.T.2.c — Plan concreto de coordinación con Laura para validación de datos [COMPLETADO 2026-05-14 14:50]**
+
+**Pregunta:** Teniendo en cuenta todo lo anterior, ¿cuál es el plan operativo concreto que necesitas de Laura durante esas 3 semanas de auditoría? ¿Sesiones continuas, puntuales, qué exactamente?
+
+**Respuesta:** Necesito tres cosas concretas de Laura antes de que arranquen mis 3 semanas de auditoría, no durante:
+
+Primero — documento de eventos operativos históricos:
+Necesito que Laura o alguien de su equipo prepare una línea de tiempo de eventos que hayan distorsionado la demanda normal desde 2019: paros, quiebres masivos, lanzamientos de productos, discontinuaciones, cambios de precio significativos, promociones de alto impacto. No tiene que ser exhaustivo ni formal — un Excel con fecha de inicio, fecha de fin y descripción breve es suficiente. Esto me toma a mí semanas de inferencia estadística; a Laura le toma probablemente dos horas de memoria institucional. Necesito ese documento antes del día uno de la auditoría.
+
+Segundo — acceso a los Excel de los planeadores:
+Necesito los archivos de seguimiento semanal de los planeadores de los últimos 24 meses, específicamente los de los SKUs tipo A. No necesito que los preparen ni los limpien — los recibo como están. Con eso puedo hacer la reconciliación de devoluciones comparando las salidas que registraron ellos versus lo que quedó en SAP. Solicito que Laura centralice esos archivos antes del inicio de la auditoría — si los pido planeador por planeador durante la auditoría pierdo días enteros en coordinación.
+
+Tercero — dos sesiones de validación durante la auditoría:
+Una sesión al final de la semana uno — 90 minutos — donde le presento a Laura los hallazgos preliminares de calidad de datos y ella confirma o corrige mis interpretaciones de los períodos problemáticos. Una segunda sesión al final de la semana tres — 60 minutos — donde revisamos juntos la decisión final sobre qué datos entran al entrenamiento y ella da su aval formal. Esa segunda sesión es crítica: si Laura no aprueba las decisiones de tratamiento de datos, cualquier cuestionamiento posterior al modelo lo vamos a rastrear hasta aquí.
+
+Fuera de esas dos sesiones y la preparación previa, no necesito más tiempo de Laura durante la auditoría. Sé que tiene carga operativa y no puedo pedirle disponibilidad continua.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+### 2.T.2 — Calidad y completitud [COMPLETADO 2026-05-14 14:50]
+
+---
+
+### 2.T.3 — Viabilidad técnica de la arquitectura propuesta [EN PROGRESO]
+
+**2.T.3.a — Viabilidad general de la arquitectura y puntos de fricción [COMPLETADO 2026-05-14 15:05]**
+
+**Pregunta:** La arquitectura propuesta por Juan Diego (SAP → Azure Data Lake → Azure ML → Power BI vía Azure SQL) — ¿es viable en general? ¿Hay aspectos que funcionarán bien, y hay aspectos que requieren decisiones explícitas antes de comprometer recursos?
+
+**Respuesta:** La arquitectura es viable y es la correcta para este contexto — Azure, Power BI ya en uso, IT con capacidad limitada. Pero hay cinco puntos de fricción que necesito que queden documentados ahora porque van a aparecer durante el desarrollo:
+
+**Punto 1 — Azure ML puede ser sobredimensionado:**
+Para este volumen de datos — 300 SKUs, series semanales, reentrenamiento semanal — Azure ML Managed Endpoints puede ser más infraestructura de la necesaria. Una Azure Function o un simple Azure Container Instance schedulado puede ejecutar el pipeline de reentrenamiento con menor costo y menor complejidad de mantenimiento. Propongo evaluar esto durante el diseño técnico antes de comprometer la arquitectura. Si Juan Diego aprobó el presupuesto con Azure ML en mente, lo uso, pero quiero que sea una decisión consciente no una suposición.
+
+**Punto 2 — Azure SQL Database tiene implicación de costo:**
+Azure SQL Database tiene costo fijo mensual aunque no se use intensivamente. Para el volumen de este proyecto, una alternativa más económica sería Azure Blob Storage con archivos Parquet que Power BI lee directamente vía conector — cero costo de base de datos. Nuevamente, decisión de diseño que debe tomarse explícitamente.
+
+**Punto 3 — La tabla de overrides necesita escritura, no solo lectura:**
+La arquitectura como está descrita es de solo lectura desde SAP hacia Power BI. Pero el mecanismo de override de Roberto requiere que los planeadores escriban datos desde Power BI hacia alguna capa de almacenamiento. Power BI no tiene escritura nativa — necesitamos un formulario externo, una Power App embebida, o una entrada manual en Azure SQL. Esto no está resuelto en la arquitectura actual y es funcionalidad crítica.
+
+**Punto 4 — Monitoreo del pipeline en producción:**
+No hay componente de observabilidad definido. Si el pipeline falla el domingo en la noche, ¿cómo se detecta antes de las 7am del lunes? Necesito definir alertas — Azure Monitor o algo más simple — desde el inicio, no como mejora futura.
+
+**Punto 5 — El servidor de reporting de SAP como punto único de falla:**
+Toda la arquitectura depende de que ese servidor esté disponible el domingo en la noche. Si SAP tiene mantenimiento no planificado o el servidor está lento, el pipeline falla. Necesito una estrategia de retry y una política de qué mostrar en Power BI cuando el dato no se actualiza — ¿el forecast de la semana anterior con una etiqueta de advertencia, o una pantalla de error?
+
+Ninguno de estos cinco puntos es bloqueante, pero todos requieren decisión explícita antes de que empiece a construir.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+---
+
+**2.T.3.b — Priorización de puntos de fricción y plan de resolución [COMPLETADO 2026-05-14 15:25]**
+
+**Pregunta:** De esos cinco puntos, ¿cuál es el más crítico que debe estar resuelto antes del 1 de septiembre? ¿Cuáles pueden diferirse post-piloto? ¿Y cuál es tu plan específico para cada uno?
+
+**Respuesta:** El más crítico es el Punto 3 — mecanismo de override con escritura. Es el único de los cinco que bloquea funcionalidad que Juan Diego declaró no negociable: Roberto necesita poder intervenir el forecast y que esa intervención quede registrada. Sin eso no hay adopción, y sin adopción no hay proyecto. Los otros cuatro puntos son de arquitectura o costo — importantes pero no bloquean el valor central del sistema.
+
+Mi recomendación específica para resolverlo antes del 1 de septiembre: implementar una Power App embebida en el dashboard de Power BI. El planeador ve el forecast, abre el formulario, registra el override y el motivo, y la Power App escribe directamente a una tabla en Azure SQL Database. Es la solución más rápida de implementar, no requiere desarrollo web personalizado, y los planeadores ya tienen licencias de Microsoft 365 que incluyen Power Apps. Tiempo de implementación estimado: 1 semana una vez definido el modelo de datos.
+
+Clasificación completa antes del 1 de septiembre vs. post-piloto:
+
+**Antes del 1 de septiembre — obligatorio:**
+- **Punto 3 (override con escritura):** bloqueante de adopción, resuelvo con Power Apps.
+- **Punto 4 (monitoreo del pipeline):** no puedo lanzar producción sin alerta de fallo dominical. Implemento Azure Monitor con un alert rule simple — medio día de trabajo.
+- **Punto 5 (política de fallo del servidor SAP):** necesito definir el comportamiento ante fallo antes del piloto para no sorprender a los planeadores el primer lunes que el dato no aparezca. Decisión de diseño más que desarrollo — 1 hora con Juan Diego para acordar la política, luego lo implemento.
+
+**Post-piloto — diferible sin riesgo:**
+- **Punto 1 (Azure ML vs. alternativa más ligera):** durante el piloto puedo correr el pipeline en Azure ML sin problema. La optimización de costo y complejidad la hago en noviembre cuando tengamos el modelo estabilizado y sepamos el patrón real de uso.
+- **Punto 2 (Azure SQL vs. Blob Storage):** mismo argumento — el costo incremental durante el piloto es bajo y no vale la pena el riesgo de cambiar la arquitectura de publicación justo antes de que los planeadores empiecen a usarla. Lo evalúo para la versión de producción definitiva en diciembre.
+
+**Resumen ejecutivo para Juan Diego:** necesito tres decisiones tuyas antes de que empiece a construir — la política de override, la política de fallo del pipeline, y confirmación del presupuesto para Azure SQL durante el piloto. Las demás las resuelvo yo.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+---
+
+**2.T.3.c — Supuestos técnicos no validados y riesgos residuales [COMPLETADO 2026-05-14 15:45]**
+
+**Pregunta:** De los cinco puntos de fricción que mencionaste, ¿hay supuestos técnicos aún no validados que si fallan tendrían impacto significativo en el proyecto? ¿Cuáles son los supuestos más críticos que necesitan validación antes de comprometer el presupuesto?
+
+**Respuesta:** Identifico seis supuestos técnicos que sostienen la solución y que aún no han sido validados. Si alguno falla, el impacto va desde retraso hasta rediseño parcial.
+
+**Supuesto 1 — Las tablas de SAP B1 son accesibles con el nivel de detalle que necesito:**
+Asumo que puedo construir una serie de demanda diaria por SKU-bodega desde las tablas SQL de SAP. No lo he verificado con credenciales reales. SAP B1 tiene versiones y configuraciones que afectan qué tablas existen y qué campos están poblados. Si IT configuró el servidor de reporting con vistas limitadas en lugar de tablas completas, mi plan de extracción cambia. Esto debe validarse en la primera semana del proyecto, antes de comprometer el diseño del pipeline.
+
+**Supuesto 2 — El volumen de datos es manejable con el tier de Azure que tenemos:**
+No conozco el tier actual de la suscripción Azure de la empresa. Para 1.800 SKUs con historia de 6 años el volumen de datos bruto es manejable — estimado bajo 10 GB — pero si el tier de Azure ML o Azure SQL Database es básico, puede haber limitaciones de cómputo o almacenamiento. Necesito acceso a la consola de Azure para verificar antes de diseñar.
+
+**Supuesto 3 — Prophet o el framework de forecasting elegido corre sin conflictos en el entorno Azure:**
+Prophet tiene dependencias de compilación que en Windows a veces generan problemas. Azure ML corre en Linux por defecto lo que reduce ese riesgo, pero si el equipo de BI necesita reproducir el entorno localmente en Windows para mantenimiento, puede haber fricción. Debo definir el entorno de dependencias desde el día uno y congelarlo con un requirements.txt o imagen Docker.
+
+**Supuesto 4 — Power BI tiene capacidad de refresco automático suficiente:**
+Si el workspace de Power BI actual está en licencia Pro, el refresco automático está limitado a 8 veces por día — suficiente para nuestro caso semanal. Pero si en el futuro queremos aumentar frecuencia, necesitamos Premium. No es un riesgo para v1 pero debo confirmarlo para no encontrar límites inesperados durante el piloto.
+
+**Supuesto 5 — El equipo de BI tiene capacidad real para mantener el pipeline post-enero 2027:**
+Juan Diego asumió que el equipo de BI absorbe el mantenimiento operativo. No he hablado con ese equipo directamente. Si tienen carga alta o no tienen familiaridad con Azure Data Factory o el stack que voy a usar, la transferencia de conocimiento requiere más tiempo del que está planificado. Recomiendo una conversación explícita con el líder del equipo de BI antes del kick-off para confirmar disponibilidad y alinear expectativas.
+
+**Supuesto 6 — Los datos de promociones del Excel comercial tienen estructura consistente:**
+Asumo que ese Excel tiene un formato estable semana a semana que puedo parsear automáticamente. Si cada analista comercial lo llena diferente o cambia columnas frecuentemente, el proceso de carga semanal se convierte en mantenimiento manual continuo. Necesito ver ese archivo antes de comprometer que entra como input en v1 — si la estructura es caótica, lo muevo a v2 y en v1 lo capturo solo como variable calendar de temporadas conocidas.
+
+**Condición de entrada que recomiendo formalizar antes de la aprobación del proyecto:**
+Los supuestos 1 y 5 son los más críticos. El supuesto 1 porque sin acceso verificado a los datos no hay proyecto. El supuesto 5 porque si el equipo de BI no puede absorber el mantenimiento, Carlos sigue siendo dueño indefinidamente y eso es un riesgo organizacional que Juan Diego necesita conocer antes de comprometer el presupuesto.
+
+**Informante:** Carlos Méndez (TECNICO)
+
+### 2.T.3 — Viabilidad técnica de la arquitectura propuesta [COMPLETADO 2026-05-14 15:45]
+
+---
+
+## FASE 2.T — Entrevista técnica [COMPLETADO 2026-05-14 15:45]
+
+### CIERRE FORMAL DE FASE 2.T
+
+**Fecha de conclusión:** 2026-05-14 15:45
+
+**Duración total:** 2 horas 45 minutos (13:00-15:45)
+
+**Entrevistado:** Carlos Méndez, Data Scientist Senior (TECNICO)
+
+**Hallazgos clave por sección:**
+
+#### 2.T.1 — Estructura y volumen de datos
+- **Histórico realmente confiable:** 28-32 meses promedio por SKU tipo A (no 6 años)
+- **SKUs tipo A utilizables tras auditoría:** 210-230 de 300 (70-77%)
+- **Recomendación crítica:** 3 semanas obligatorias de auditoría y limpieza antes de entrenamiento
+- **Implicación:** el volumen de entrenamiento es menor del estimado, pero más confiable
+
+#### 2.T.2 — Calidad y completitud
+- **Períodos problemáticos identificados:** 5 períodos con anomalías documentadas (2020 pandemia, 2020-2021 migración SAP, 2021-2022 paro transportadores, quiebres de stock dispersos, 2019 datos antiguos)
+- **Estrategia de tratamiento:** Exclusión definitiva para datos incompletos >40%, enmascaramiento con variables indicadoras para anomalías, reconstrucción activa para demanda censurada
+- **Requerimiento operativo:** necesita documento de eventos históricos de Laura + acceso a Excel de planeadores + 2 sesiones de validación de 90 y 60 minutos
+- **Implicación:** La calidad de datos requiere trabajo activo coordinado antes de entrenar
+
+#### 2.T.3 — Viabilidad técnica
+- **Arquitectura general:** viable, pero 5 puntos de fricción identificados
+- **Punto crítico bloqueante:** mecanismo de override con escritura (Punto 3) — necesario para adopción
+- **Resolución recomendada:** Power Apps embebida en dashboard, 1 semana de implementación
+- **Decisiones ejecutivas requeridas antes del 1 de septiembre:**
+  - Aprobación de Punto 3 (override con Power Apps)
+  - Definición de política ante fallo del pipeline SAP
+  - Confirmación de presupuesto Azure SQL durante piloto
+- **Diferibles post-piloto:** optimización de costo (Azure ML vs. alternatives), arquitectura de publicación (SQL vs. Blob Storage)
+
+#### 2.T.3 — Supuestos técnicos críticos
+- **6 supuestos identificados, 2 críticos antes de aprobación:**
+  1. **Supuesto 1 (Acceso SAP):** debe validarse semana 1 del proyecto — SIN ESTE NO HAY PROYECTO
+  2. **Supuesto 5 (Capacidad equipo BI para mantenimiento):** debe acordarse con líder BI antes del kick-off — riesgo organizacional de dependencia de Carlos indefinida
+- **4 supuestos adicionales:** volumen Azure, framework de forecasting, capacidad Power BI, estructura Excel promociones — validables durante primeras semanas sin bloquear inicio
+
+### Gaps y riesgos documentados para síntesis:
+
+1. **Validación de acceso SAP** — condición de entrada crítica
+2. **Capacidad de equipo BI post-enero 2027** — riesgo de transferencia de conocimiento
+3. **Estructura del Excel de promociones** — determina si entra en v1 o se pospone a v2
+4. **Mecanismo de override** — requiere decisión arquitectónica antes del 1 de septiembre
+5. **Política de fallo del pipeline** — debe estar definida antes del piloto para no sorprender en producción
+
+### Información técnica lista para síntesis:
+- Historial de datos realmente utilizable y plan de auditoría
+- Estrategia de tratamiento de datos con lineage documentado
+- Arquitectura viable con puntos de fricción prorizados
+- Identificación de supuestos críticos vs. diferibles
+- Ruta clara hacia decisiones ejecutivas en pre-kick-off
 
