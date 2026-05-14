@@ -1,13 +1,19 @@
 {
   "su": {
-    "status": "interview_complete",
-    "phase": "synthesis",
-    "iteration_count": 0,
+    "status": "in_progress",
+    "phase": "evaluator",
+    "current_draft": "governance/su/su_draft_v1.md",
+    "iteration_count": 1,
     "complexity": "medium",
     "complexity_signals": ["multiples_decision_makers", "alcance_multi_area", "proyecto_previo_fallido"],
     "cb_threshold": 3,
     "phases_completed": ["phase0", "phase1", "phase2", "phase2T", "phase2U"],
     "interview_end_timestamp": "2026-05-14T17:15:00",
+    "needs_analyzer_confidence": 0.75,
+    "needs_analyzer_level": "PROCEDER CON PRECAUCIÓN",
+    "gaps_criticos": 0,
+    "gaps_menores": 5,
+    "gaps_ausentes": 0,
     "stakeholders_mapeados": [
       {"nombre": "Juan Diego Rodriguez", "cargo": "Director de Data & Analytics", "tipo": "SPONSOR", "disponible": true},
       {"nombre": "Carlos Mendez", "cargo": "Data Scientist Senior", "tipo": "TECNICO", "disponible": true},
