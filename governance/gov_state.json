@@ -6,6 +6,8 @@
     "complexity": "medium",
     "complexity_signals": ["multiples_decision_makers", "alcance_multi_area", "proyecto_previo_fallido"],
     "cb_threshold": 3,
+    "phases_completed": ["phase0", "phase1", "phase2", "phase2T", "phase2U"],
+    "interview_end_timestamp": "2026-05-14T17:15:00",
     "stakeholders_mapeados": [
       {"nombre": "Juan Diego Rodriguez", "cargo": "Director de Data & Analytics", "tipo": "SPONSOR", "disponible": true},
       {"nombre": "Carlos Mendez", "cargo": "Data Scientist Senior", "tipo": "TECNICO", "disponible": true},

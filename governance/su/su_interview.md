@@ -582,3 +582,192 @@ Los supuestos 1 y 5 son los más críticos. El supuesto 1 porque sin acceso veri
 - Identificación de supuestos críticos vs. diferibles
 - Ruta clara hacia decisiones ejecutivas en pre-kick-off
 
+---
+
+## FASE 2.U — Entrevista con Laura Gómez (USUARIO) [EN PROGRESO]
+
+**Contexto de Fase 2.U:**
+Laura Gómez es la Jefe de Cadena de Suministro y Coordinadora de Planeación. Su rol es crucial para validar el contexto de uso diario del sistema de forecasting y los pain points operativos que el modelo debe resolver. Esta fase captura la perspectiva del usuario final que usará el sistema semana a semana.
+
+**Disponibilidad:** Martes y jueves, 1 hora por sesión (confirmada en Fase 0)
+
+**Duración sesión estimada:** 45 minutos
+
+### 2.U.1 — Contexto de uso diario [EN PROGRESO]
+
+**2.U.1.a — Flujo de trabajo típico del lunes [COMPLETADO 2026-05-14 16:10]**
+
+**Pregunta:** Describe tu flujo de trabajo típico desde que llegas el lunes a la oficina. ¿Qué haces primero, cuánto tiempo te toma cada paso, dónde están los principales cuellos de botella o puntos de fricción?
+
+**Respuesta:** El lunes empieza antes de llegar a la oficina. Generalmente reviso en el celular los mensajes del equipo comercial del fin de semana — si hubo algún quiebre o urgencia durante el sábado, ya llego con esa información.
+
+Al llegar, lo primero que hago es abrir el reporte de inventario que uno de mis planeadores extrae de SAP cada lunes a primera hora. Ese reporte tarda entre 45 minutos y una hora en generarse porque SAP no tiene un reporte estándar que nos sirva — el planeador hace la extracción, la pega en un Excel maestro y aplica las fórmulas que hemos construido durante años. Ese Excel es lo que realmente usamos para tomar decisiones, no SAP directamente.
+
+Con ese Excel abierto, hago un recorrido por categorías. Reviso días de inventario por SKU, identifico los que están por debajo del punto de reorden que definimos empíricamente, y marco los que necesitan orden urgente. Ese recorrido me toma entre una y dos horas dependiendo de cuántos SKUs estén en zona crítica.
+
+Luego cada planeador trabaja de forma independiente su categoría — propone las órdenes de compra, define cantidades basándose en su criterio y en el historial que conocen de memoria, y me manda un resumen para revisión. Ese proceso les toma entre dos y cuatro horas por planeador.
+
+A media tarde consolido las propuestas, las reviso contra el presupuesto disponible de compras, ajusto donde hay conflicto de capital y apruebo. Las órdenes que superan mi límite las escalo al Gerente de Compras. Normalmente cerramos las decisiones de la semana entre las 4 y las 6 de la tarde del lunes.
+
+El problema real es que ese flujo asume que todo sale bien. Cuando hay una urgencia — un cliente llamando por un quiebre, un proveedor que no entregó — el proceso se fragmenta y terminamos tomando decisiones de reorden a las 8 de la noche con información incompleta.
+
+**Informante:** Laura Gómez (USUARIO)
+
+---
+
+**2.U.1.b — Frecuencia y patrones de eventos disruptivos [COMPLETADO 2026-05-14 16:25]**
+
+**Pregunta:** ¿Con qué frecuencia ocurren esas interrupciones o eventos inesperados que te sacan del plan? ¿Hay días o momentos específicos de la semana donde esto es más probable?
+
+**Respuesta:** Siendo realista: no existe la semana sin interrupciones. Lo que varía es la intensidad.
+
+En una semana normal — que diría que es el 40% de las semanas — hay entre dos y tres interrupciones menores. Un proveedor que avisa que entregará tarde, un cliente que reclama un faltante puntual, un planeador que descubre que el inventario físico no cuadra con SAP. Esas las resolvemos dentro del horario normal sin mayor impacto en la planeación.
+
+En una semana complicada — que es el otro 60% — hay al menos una interrupción mayor que consume entre dos y cuatro horas del día: un quiebre imprevisto en un SKU tipo A, un rechazo de mercancía en bodega, una promoción que el área comercial activó sin avisarnos con anticipación. Esas semanas son las que terminan con decisiones de reorden nocturnas.
+
+El miércoles y el jueves son los días más vulnerables. El lunes cerramos las órdenes de la semana, pero para el miércoles ya están llegando las entregas de proveedores con lead time corto y es cuando se revelan los faltantes reales versus lo que esperábamos. El jueves es cuando el área comercial consolida sus resultados de ventas de la semana y nos pide reaccionar.
+
+El efecto acumulado es que la planeación proactiva — pensar en las próximas cuatro semanas — ocurre en la práctica solo los lunes por la mañana, antes de que empiecen las urgencias. Si ese tiempo se reduce por cualquier razón, tomamos decisiones de reorden casi completamente reactivas. Eso es lo que más me preocupa del modelo actual: no es que no sepamos planear, es que el sistema operativo no nos da el espacio para hacerlo.
+
+**Informante:** Laura Gómez (USUARIO)
+
+### 2.U.1 — Contexto de uso diario [COMPLETADO 2026-05-14 16:25]
+
+---
+
+## 2.U.2 — Pain points y expectativas [EN PROGRESO]
+
+### 2.U.2.a — Pain points operativos más agudos [COMPLETADO 2026-05-14 16:45]
+
+**Pregunta:** De todo lo que has descrito — los quiebres de stock, los reorders nocturnos, las interrupciones de miércoles y jueves — ¿cuál es el problema que más te quita el sueño operativamente? ¿Cuál es el que, si lo resolvieras, tendría el mayor impacto en tu trabajo día a día?
+
+**Respuesta:** Sin dudar: no saber con anticipación suficiente qué va a quebrar.
+
+Hoy cuando identifico que un SKU está en riesgo de quiebre, en la mayoría de los casos ya es demasiado tarde para reaccionar bien. El lead time promedio de nuestros proveedores es de 12 a 18 días. Si el lunes detecto que un SKU tipo A va a quebrar en 10 días, ya no tengo margen — el pedido llega cuando el quiebre ya ocurrió o está ocurriendo. Termino negociando entregas parciales urgentes a mayor costo, o peor, llamando al cliente para pedirle paciencia.
+
+Lo que me quitaría el sueño sería tener esa visibilidad con cuatro o seis semanas de anticipación. No necesito que el modelo sea perfecto — necesito que me diga con suficiente tiempo de anticipación 'este SKU va a tener problema' para que yo pueda actuar dentro de los tiempos normales del negocio, sin urgencias ni sobrecostos.
+
+El segundo problema en importancia es la asimetría de información con el área comercial. Ellos activan promociones y negocian volúmenes especiales sin coordinación sistemática con nosotros. Cuando nos enteramos, el inventario ya no alcanza. Pero ese problema no lo resuelve un modelo de forecasting solo — requiere un cambio de proceso entre dos áreas. Lo menciono porque si el modelo consume los datos de promociones del Excel comercial como input, ya estaríamos dando el primer paso para formalizar esa coordinación.
+
+Si tuviera que elegir uno solo: la anticipación en quiebres. Eso cambia completamente la naturaleza de mi trabajo — paso de apagar incendios a gestionar riesgos. Esa diferencia para mí es enorme, no solo en resultados sino en calidad de vida del equipo.
+
+**Informante:** Laura Gómez (USUARIO)
+
+---
+
+**2.U.2.b — Transformación del flujo de trabajo con forecast a 4-6 semanas [COMPLETADO 2026-05-14 16:50]**
+
+**Pregunta:** Si tuvieras el forecast de demanda disponible el lunes por la mañana — con visibilidad de 4 a 6 semanas — ¿cómo cambiaría tu día laboral? ¿Qué te quitaría de encima y qué nuevas actividades podrías hacer que hoy casi no haces?
+
+**Respuesta:** El lunes cambiaría fundamentalmente en un punto: dejaría de ser un día de diagnóstico y se convertiría en un día de decisiones.
+
+Hoy el lunes lo paso descubriendo el estado del inventario — extrayendo datos, construyendo el Excel, identificando qué está en zona crítica. Eso me consume la mañana. Con el forecast disponible, llegaría el lunes sabiendo ya qué SKUs van a tener problema en las próximas cuatro a seis semanas. El dashboard me lo mostraría ordenado por urgencia. No tendría que buscar el problema — el problema vendría a mí.
+
+Lo que cambiaría en concreto: en lugar de revisar los 300 SKUs tipo A para encontrar los 20 que están en riesgo, empezaría directamente con esos 20 priorizados. Eso me libera entre una y dos horas de la mañana. Ese tiempo lo invertiría en algo que hoy casi nunca hago: revisar las causas detrás del riesgo y coordinar con el área comercial antes de lanzar la orden — ¿hay una promoción planificada que justifica pedir más?, ¿hay un cambio de proveedor que afecta el lead time?, ¿conviene consolidar esta orden con otra que ya está pendiente?
+
+Para los planeadores el cambio sería similar. Hoy llegan y construyen su diagnóstico. Con el forecast llegarían con el diagnóstico hecho y usarían su criterio — que es valioso — para validar, ajustar y decidir, no para descubrir. Roberto en particular: su experiencia de 8 años no desaparece, se aplica mejor. Él sabría cosas que el modelo no sabe — una negociación especial con un proveedor, un cliente que está a punto de hacer un pedido grande — y ese conocimiento lo incorporaría vía el override de forma estructurada en lugar de quedarse solo en su cabeza.
+
+Una cosa adicional que cambiaría y que nadie ha mencionado: las conversaciones con el Gerente de Compras. Hoy cuando le escalo una orden grande, la conversación es reactiva — 'necesitamos esto urgente'. Con forecast de seis semanas, la conversación sería 'en seis semanas vamos a necesitar este volumen, ¿negociamos condiciones ahora?'. Eso tiene valor económico directo — mejores precios, mejores condiciones de entrega — que hoy no estamos capturando porque siempre llegamos tarde.
+
+**Informante:** Laura Gómez (USUARIO)
+
+---
+
+**2.U.2.c — Restricciones de tiempo y contexto de uso [COMPLETADO 2026-05-14 16:55]**
+
+**Pregunta:** Teniendo en cuenta tu flujo de trabajo el lunes y los eventos de urgencia durante la semana — ¿hay restricciones de tiempo, contexto o dispositivo que el sistema DEBE respetar para ser útil en tu día a día?
+
+**Respuesta:** Hay tres restricciones reales que el sistema debe respetar:
+
+Primera — el dato debe estar listo antes de las 7am del lunes:
+No a las 8, no a las 9. Los planeadores llegan entre 7 y 7:30, y si el dashboard no tiene datos frescos al llegar, la primera reacción es volver al Excel de siempre. El hábito se forma o se rompe en esas primeras semanas. Si el lunes llegan y el sistema no tiene datos, ese día trabajamos con el método antiguo y perdemos confianza. Carlos mencionó las 7am — eso es correcto y es innegociable.
+
+Segunda — las decisiones de override deben poder registrarse en el momento, desde cualquier dispositivo:
+Cuando estoy en una reunión con el Gerente de Compras y surge una decisión sobre un SKU específico, necesito poder registrar ese ajuste en ese momento desde el celular o desde la sala de reuniones. No puedo volver a mi escritorio dos horas después a recordar qué decidí y por qué. Si el mecanismo de override solo funciona bien en desktop, vamos a tener subregistro — los planeadores van a tomar decisiones que no quedan documentadas. Eso arruina el aprendizaje del modelo y la trazabilidad que Juan Diego necesita.
+
+Tercera — el sistema debe funcionar aunque SAP esté caído:
+Los viernes en la tarde y algunos sábados IT hace mantenimientos no programados en SAP. Si el pipeline depende de que SAP esté disponible ese fin de semana, el lunes puede amanecer sin datos actualizados. La política de fallback que Carlos mencionó no es opcional — necesitamos que el dashboard muestre el forecast de la semana anterior con una etiqueta clara de 'datos no actualizados' antes que una pantalla en blanco. Una pantalla en blanco el lunes a las 7am genera pánico innecesario.
+
+Hay un contexto de uso diferente al lunes típico que vale mencionar: los jueves en la tarde, cuando consolidamos urgencias de la semana, también consultamos el sistema para ver si las decisiones de reorden del lunes fueron suficientes o si hay que ajustar. Ese uso es secundario — no necesita datos frescos, solo los del lunes — pero el sistema debe estar disponible y estable durante toda la semana, no solo el lunes.
+
+**Informante:** Laura Gómez (USUARIO)
+
+---
+
+**2.U.2.d — Criterios de fracaso y situaciones donde volvería a Excel [COMPLETADO 2026-05-14 17:15]**
+
+**Pregunta:** En el extremo opuesto — ¿hay situaciones concretas donde dirías "esto no está funcionando, volvemos al Excel"? ¿Qué condiciones o fallos de la herramienta te harían abandonarla?
+
+**Respuesta:** Hay cuatro situaciones concretas donde dejaría de usar el sistema:
+
+Primera — si el modelo me falla en los SKUs más importantes sin explicación:
+Si un lunes el modelo proyecta demanda normal para un SKU tipo A y tres semanas después ese SKU quiebra, necesito entender por qué falló. Si la única respuesta que obtengo es un número diferente la semana siguiente sin ninguna explicación de qué cambió, pierdo confianza rápidamente. No exijo que el modelo sea perfecto, pero sí exijo que cuando se equivoca sea transparente sobre por qué. Un modelo que falla en silencio es peor que el Excel, porque al menos en el Excel yo sé exactamente qué asumí.
+
+Segunda — si el tiempo de adopción supera el beneficio percibido en las primeras semanas:
+El sistema debe mostrar valor visible en las primeras dos o tres semanas del piloto. Si después de un mes los planeadores sienten que están haciendo más trabajo — registrando overrides, validando datos, aprendiendo una herramienta nueva — sin ver que sus decisiones mejoran, volvemos al Excel. El valor tiene que ser perceptible rápido. No en diciembre — en octubre.
+
+Tercera — si el dashboard requiere interpretación experta para usarse:
+Si los planeadores necesitan entender estadística para interpretar lo que ven, el sistema no sirve para este equipo. Tengo planeadores muy buenos operativamente que no tienen formación analítica avanzada. Si el dashboard muestra intervalos de confianza, percentiles o métricas técnicas sin traducirlas a lenguaje operativo — 'este SKU tiene alto riesgo de quiebre en 3 semanas', no 'el percentil 80 del forecast supera el inventario proyectado' — lo van a ignorar.
+
+Cuarta — si el sistema no respeta las excepciones del negocio:
+Hay SKUs con comportamientos que ningún modelo va a capturar bien inicialmente: productos con demanda intermitente, SKUs que solo se mueven por pedidos especiales de un cliente específico, productos en proceso de discontinuación. Si el modelo genera recomendaciones de reorden para esos SKUs como si fueran productos normales, los planeadores van a perder confianza en todo el sistema, no solo en esos SKUs. Necesitamos una forma de marcar excepciones — 'este SKU no se pronostica con el modelo general' — desde el inicio, no después de que el error ya ocurrió.
+
+El denominador común de los cuatro escenarios es el mismo: si el sistema me hace sentir que estoy sirviendo a la herramienta en lugar de que la herramienta me sirva a mí, vuelvo al Excel sin dudar.
+
+**Informante:** Laura Gómez (USUARIO)
+
+### 2.U.2 — Pain points y expectativas [COMPLETADO 2026-05-14 17:15]
+
+---
+
+## FASE 2.U — Entrevista con Laura Gómez (USUARIO) [COMPLETADO 2026-05-14 17:15]
+
+### CIERRE FORMAL DE FASE 2.U
+
+**Fecha de conclusión:** 2026-05-14 17:15
+
+**Duración total:** 1 hora 5 minutos (16:10-17:15)
+
+**Entrevistado:** Laura Gómez, Jefe de Cadena de Suministro (USUARIO)
+
+**Hallazgos clave por sección:**
+
+#### 2.U.1 — Contexto de uso diario
+- **Flujo típico del lunes:** Diagnóstico de estado inventario (45 min a 1 hora de extracción SAP), revisión de riesgo por SKU (1-2 horas), propuestas de planeadores (2-4 horas), consolidación y aprobación (2-4 horas). Cierre de decisiones entre 4-6 pm.
+- **Patrón de interrupciones:** 40% de semanas normales (2-3 interrupciones menores), 60% de semanas complicadas (1+ interrupción mayor de 2-4 horas). Picos de vulnerabilidad: miércoles (entregas de proveedores revelan faltantes) y jueves (consolidación de ventas del área comercial).
+- **Actividad de planeación proactiva:** Ocurre solo los lunes por la mañana antes de urgencias — si ese tiempo se reduce, las decisiones se vuelven completamente reactivas.
+- **Implicación para el sistema:** El lunes por la mañana es el punto crítico. Si el sistema no absorbe al menos la mitad del trabajo de diagnóstico de inventario, no hay beneficio real.
+
+#### 2.U.2 — Pain points y expectativas
+- **Pain point crítico:** Falta de visibilidad con anticipación de quiebres potenciales. Lead time de proveedores 12-18 días; si detecta riesgo con 10 días de anticipación, ya es tarde. Necesita 4-6 semanas de visibilidad.
+- **Pain point secundario:** Asimetría de información con área comercial — promociones activadas sin coordinación sistemática. No lo resuelve solo el forecasting, pero intake del Excel comercial como input comienza la formalización.
+- **Transformación esperada del flujo de trabajo:** Pasar de diagnóstico/descubrimiento a decisión/validación. Lunes cambiaría de 2-3 horas de búsqueda de problemas a 30 min de revisión de problemas priorizados. Tiempo liberado se invertiría en análisis de causas raíz y coordinación con Gerente de Compras.
+- **Beneficio específico para planeadores:** Roberto podría aplicar su experiencia de 8 años de forma estructurada vía overrides, en lugar de dejarla solo en su cabeza. Su conocimiento no desaparece, se amplifica.
+- **Restricciones operativas NO negociables (3):**
+  1. Dato listo antes de 7am del lunes (no a las 8 ni a las 9) — hábito se forma o quiebra las primeras semanas
+  2. Override debe funcionar desde cualquier dispositivo en el momento (celular, sala de reuniones) — si solo funciona en desktop hay subregistro y se pierde el aprendizaje del modelo
+  3. Sistema debe funcionar aunque SAP esté caído (fallback a forecast anterior con etiqueta de advertencia, nunca pantalla en blanco)
+- **Uso secundario:** Consultas los jueves en la tarde para validar si las decisiones de reorden del lunes fueron suficientes — no requiere datos frescos pero el sistema debe estar disponible toda la semana.
+- **Criterios de fracaso (4 situaciones donde abandonaría):**
+  1. **Fallos sin explicación en SKUs importantes:** Modelo falla silenciosa peor que Excel. Necesita transparencia de por qué cambió.
+  2. **Tiempo adopción > beneficio en 2-3 semanas:** Debe mostrar valor visible rápido. Si después de un mes el equipo siente que hace MÁS trabajo sin mejora, vuelta a Excel.
+  3. **Dashboard requiere expertise técnica:** Planeadores sin formación analítica no pueden interpretar intervalos, percentiles — necesita lenguaje operativo.
+  4. **No respeta excepciones del negocio:** SKUs intermitentes, especiales, en discontinuación necesitan marcar DESDE EL INICIO, no post-error. Pérdida de confianza en TODO el sistema si trata excepciones como productos normales.
+- **Denominador común de criterios de fracaso:** Si el sistema la hace servir a la herramienta en lugar de que la herramienta la sirva, vuelve al Excel sin dudar.
+
+### Gaps y riesgos documentados para síntesis:
+
+1. **Visibilidad SAP vs. Excel operativo:** Planeadores confían más en sus Excel que en SAP para productos críticos. Fuente de verdad debe resolverse antes de entrenar.
+2. **Excepciones del negocio no catalogadas:** SKUs con comportamiento especial necesitan identificación y marcaje INICIAL — no es afterthought.
+3. **Mecanismo de override mobile-friendly:** Debe ser usable desde celular en reuniones, no solo en desktop.
+4. **Comunicación de incertidumbre del modelo:** Necesita poder explicar por qué falló cada predicción. Interpretabilidad es requisito operativo, no lujo.
+5. **Captura del criterio de Roberto:** Sus 8 años de experiencia deben canalizarse vía override con motivo texto libre, auditable para aprendizaje del modelo.
+
+### Información de usuario final lista para síntesis:
+- Contexto operativo del flujo de trabajo lunes-semana con tiempos específicos
+- Pain points concretos con métrica de impacto (lead time 12-18 días vs. visibility requerida 4-6 semanas)
+- Transformación esperada del trabajo día a día (diagnóstico → decisión)
+- Restricciones operativas NO negociables con justificación (3 restricciones, 1 uso secundario)
+- Criterios de fracaso específicos y cómo el sistema puede evitarlos
+- Énfasis crítico: control de usuario, no automatización de decisiones
+
