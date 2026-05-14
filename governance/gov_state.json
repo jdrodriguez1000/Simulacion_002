@@ -1,0 +1,15 @@
+{
+  "su": {
+    "status": "in_progress",
+    "phase": "interview_phase2",
+    "iteration_count": 0,
+    "complexity": "medium",
+    "complexity_signals": ["multiples_decision_makers", "alcance_multi_area", "proyecto_previo_fallido"],
+    "cb_threshold": 3,
+    "stakeholders_mapeados": [
+      {"nombre": "Juan Diego Rodriguez", "cargo": "Director de Data & Analytics", "tipo": "SPONSOR", "disponible": true},
+      {"nombre": "Carlos Mendez", "cargo": "Data Scientist Senior", "tipo": "TECNICO", "disponible": true},
+      {"nombre": "Laura Gomez", "cargo": "Jefe de Cadena de Suministro", "tipo": "USUARIO", "disponible": true}
+    ]
+  }
+}
