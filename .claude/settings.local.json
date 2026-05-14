@@ -1,0 +1,83 @@
+{
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true",
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.anthropic.com)",
+      "Skill(update-config)",
+      "Bash(python check_fences.py)",
+      "Bash(del check_fences.py)",
+      "Bash(python check_confidence.py)",
+      "Bash(python check_agents.py)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\" -Recurse)",
+      "Bash(Select-Object FullName)",
+      "Bash(Format-List)",
+      "PowerShell(New-Item *)",
+      "Bash(python -m json.tool \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\\\\project_state.json\")",
+      "Bash(python -m json.tool \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\\\\governance\\\\gov_state.json\")",
+      "Edit(*)",
+      "Write(*)",
+      "Bash(git *)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git init*)",
+      "Bash(git status*)",
+      "Bash(Remove-Item *)",
+      "Bash(python -m json.tool governance/gov_state.json)",
+      "Bash(python scripts/gov_init.py)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(python -m json.tool governance/gov_init_report.json)",
+      "Bash(python -m json.tool governance/gov_failure_modes.json)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(python -c \"import os; print\\(os.path.exists\\('governance/su/su_sprint_contract.md'\\)\\); print\\(os.path.exists\\('governance/su/su_sprint_contract.md.bak'\\)\\)\")",
+      "Bash(python -c \"import shutil; shutil.move\\('governance/su/su_sprint_contract.md.bak', 'governance/su/su_sprint_contract.md'\\); print\\('Restaurado'\\)\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(dir \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\")",
+      "Bash(python -m json.tool \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\\\\gov_metrics_catalog.json\")",
+      "Bash(python -m py_compile scripts/gov_init.py)",
+      "WebFetch(domain:github.com)",
+      "Bash(Get-Module -ListAvailable BurntToast)",
+      "Bash(Select-Object Name, Version)",
+      "PowerShell(powershell -NonInteractive -WindowStyle Hidden -File \"C:\\\\Users\\\\USUARIO\\\\.claude\\\\ccnotify.ps1\" -Event Stop -Message \"Prueba de notificacion CCNotify\")",
+      "WebFetch(domain:docs.github.com)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\\\\.claude\\\\agents\" -Filter \"*.md\")",
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\USUARIO\\\\Documents\\\\Triple S\\\\Harnesses\\\\Metodo\\\\.claude\\\\skills\" -Recurse -Force)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Test-Path *)",
+      "Bash(python scripts/check_harness_integrity.py)",
+      "WebFetch(domain:youtu.be)",
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(python scripts/generate_dashboard.py)",
+      "Bash(python scripts/gen_dashboard.py)",
+      "Bash(python -c ' *)",
+      "Bash(python scripts/patch_dashboard.py)",
+      "Bash(python scripts/test_clean.py)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -WindowStyle Hidden -File \"C:\\Users\\USUARIO\\.claude\\ccnotify.ps1\" -Event Stop"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -WindowStyle Hidden -File \"C:\\Users\\USUARIO\\.claude\\ccnotify.ps1\" -Event Notification"
+          }
+        ]
+      }
+    ]
+  }
+}

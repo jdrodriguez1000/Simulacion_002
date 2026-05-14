@@ -1,0 +1,97 @@
+{
+  "harness": "governance",
+  "version": "1.0",
+  "documents": ["su", "brd", "bdd", "sad", "specdd", "feasibility", "backlog"],
+  "metrics": [
+    {
+      "id": "gap_escape_rate",
+      "category": "eficacia",
+      "description": "% de gaps que doc_auditor NO detectó pero el humano sí encontró",
+      "formula": "gaps_humano / (gaps_auto + gaps_humano)",
+      "sources": ["gov_history.log", "{doc}_review.md"],
+      "threshold": { "operator": "lt", "value": 0.15 },
+      "alert_template": "{doc}: gap_escape_rate={value}, supera umbral 0.15. Revisar rúbrica del doc_auditor."
+    },
+    {
+      "id": "first_pass_approval_rate",
+      "category": "eficacia",
+      "description": "% de documentos aprobados en la primera iteración",
+      "formula": "docs_aprobados_en_v1 / total_docs",
+      "sources": ["gov_history.log"],
+      "threshold": { "operator": "gt", "value": 0.40 },
+      "alert_template": "first_pass_approval_rate={value}, por debajo de 0.40. Revisar calidad del su_synthesizer."
+    },
+    {
+      "id": "avg_iteration_count",
+      "category": "eficiencia",
+      "description": "Promedio de drafts generados por documento hasta aprobar",
+      "formula": "sum(iteration_counts) / num_docs",
+      "sources": ["gov_history.log"],
+      "threshold": { "operator": "lte", "value": 3 },
+      "alert_template": "avg_iteration_count={value}, supera umbral 3. El synthesizer no está convergiendo."
+    },
+    {
+      "id": "agent_failure_rate",
+      "category": "robustez",
+      "description": "% de invocaciones de agente que fallaron y requirieron reintento",
+      "formula": "fallos / total_invocaciones",
+      "sources": ["gov_history.log"],
+      "threshold": { "operator": "lt", "value": 0.05 },
+      "alert_template": "agent_failure_rate={value}, supera umbral 0.05. Revisar estabilidad del ambiente."
+    },
+    {
+      "id": "circuit_breaker_activations",
+      "category": "robustez",
+      "description": "Número de veces que se activó el circuit breaker (3 iteraciones sin aprobar)",
+      "formula": "conteo en gov_history.log de 'CIRCUIT BREAKER activado'",
+      "sources": ["gov_history.log"],
+      "threshold": { "operator": "eq", "value": 0 },
+      "alert_template": "circuit_breaker activado {value} veces. Revisar calidad del su_synthesizer o la rúbrica."
+    },
+    {
+      "id": "evaluator_human_agreement",
+      "category": "calidad_ia",
+      "description": "% de veces que el evaluador IA y el humano coincidieron en aprobar o rechazar",
+      "formula": "acuerdos / total_evaluaciones",
+      "sources": ["gov_history.log", "{doc}_review.md"],
+      "threshold": { "operator": "gt", "value": 0.80 },
+      "alert_template": "evaluator_human_agreement={value}, por debajo de 0.80. Recalibrar el evaluador con nuevos ejemplos."
+    },
+    {
+      "id": "avg_confidence_at_synthesis",
+      "category": "calidad_ia",
+      "description": "Confidence score promedio del su_needs_analyzer en el momento en que se invocó al su_synthesizer. Correlaciona calidad de la entrevista con número de iteraciones necesarias.",
+      "formula": "promedio de needs_analyzer_confidence en gov_state.json al momento phase='synthesizer'",
+      "sources": ["gov_state.json", "gov_history.log"],
+      "threshold": { "operator": "gte", "value": 0.75 },
+      "alert_template": "avg_confidence_at_synthesis={value}, por debajo de 0.75. El synthesizer está recibiendo entrevistas insuficientes; revisar su_interviewer o su_needs_analyzer."
+    },
+    {
+      "id": "confidence_iteration_correlation",
+      "category": "calidad_ia",
+      "description": "Correlación entre confidence_score inicial y número de iteraciones synthesizer→evaluator. Valor cercano a -1.0 confirma la hipótesis: mayor confidence inicial = menos iteraciones.",
+      "formula": "correlación de Pearson entre needs_analyzer_confidence y iteration_count por documento",
+      "sources": ["gov_state.json"],
+      "threshold": { "operator": "lt", "value": -0.50 },
+      "alert_template": "confidence_iteration_correlation={value}, correlación débil. El confidence_score no predice bien el número de iteraciones; revisar la fórmula de cálculo."
+    },
+    {
+      "id": "human_rejection_count",
+      "category": "satisfaccion",
+      "description": "Veces que el stakeholder rechazó el draft después de pasar evaluación automática",
+      "formula": "conteo por documento en gov_history.log de 'draft rechazado por stakeholder'",
+      "sources": ["gov_history.log"],
+      "threshold": { "operator": "lte", "value": 1 },
+      "alert_template": "{doc}: rechazado {value} veces por humano después de aprobar evaluación automática."
+    },
+    {
+      "id": "interview_completeness",
+      "category": "valor_negocio",
+      "description": "% de preguntas con respuesta real vs. 'no aplica' o sin respuesta",
+      "formula": "respuestas_reales / total_preguntas",
+      "sources": ["{doc}_interview.md"],
+      "threshold": { "operator": "gt", "value": 0.70 },
+      "alert_template": "{doc}: interview_completeness={value}, por debajo de 0.70. Revisar calidad del interviewer."
+    }
+  ]
+}

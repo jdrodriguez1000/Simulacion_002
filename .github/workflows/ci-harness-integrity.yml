@@ -1,0 +1,28 @@
+name: Harness Integrity Check
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  integrity:
+    name: Validar integridad de artefactos
+    runs-on: ubuntu-latest
+    # El job no bloquea el push — solo alerta.
+    # Las fallas quedan visibles en la pestaña Actions del repositorio.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verificar integridad de artefactos del harness
+        # continue-on-error: true garantiza que un fallo de este step
+        # no bloquea el push ni marca el commit como fallido en GitHub.
+        continue-on-error: true
+        run: python scripts/check_harness_integrity.py

@@ -1,0 +1,49 @@
+name: CD Metrics — Post Aprobación de Documento
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  metrics:
+    name: Generar reporte de métricas
+    runs-on: ubuntu-latest
+    # Se activa solo cuando el commit de hito contiene 'APPROVED'.
+    # Ejemplos: "SU APPROVED by stakeholder", "BRD APPROVED by stakeholder"
+    if: contains(github.event.head_commit.message, 'APPROVED')
+
+    # El job no detiene el harness si falla — degradación elegante.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verificar estado del ambiente (gov_init)
+        continue-on-error: true
+        run: python scripts/gov_init.py
+
+      - name: Verificar integridad de artefactos
+        continue-on-error: true
+        run: python scripts/check_harness_integrity.py
+
+      - name: Subir artefactos de métricas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-metrics-${{ github.sha }}
+          # Incluye los archivos de métricas que existan.
+          # Si gov_init_report.json o su_metrics.json no existen aún, el step
+          # los omite sin error (if-no-files-found: ignore).
+          if-no-files-found: ignore
+          path: |
+            governance/gov_init_report.json
+            governance/su/su_metrics.json
+            governance/agent_metrics.jsonl

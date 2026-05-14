@@ -1,0 +1,72 @@
+name: CD Prompt Gate — Aprobación de cambios LEARN
+
+# PREREQUISITO: El operador debe configurar el environment "prompt-changes"
+# en GitHub Settings > Environments > New environment > "prompt-changes".
+# Agregar al menos un reviewer requerido (Required reviewers).
+# El timeout de aprobación predeterminado de GitHub es 30 días;
+# se recomienda configurarlo en 24 horas vía "Wait timer" si está disponible
+# en el plan de GitHub del repositorio.
+#
+# Flujo:
+#   1. doc_orchestrator genera commit con mensaje "LEARN: <agente> — <descripción>"
+#   2. Este workflow detecta el commit y pausa en el environment "prompt-changes"
+#   3. El reviewer aprueba o rechaza en la UI de GitHub
+#   4. Si aprobado: el script imprime el resumen de cambios para el registro de auditoría
+#   5. Si rechazado o sin respuesta: el deployment queda en estado "rejected"
+#      con trazabilidad completa en GitHub (identidad del reviewer + timestamp)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  prompt-gate:
+    name: Gate de aprobación humana para cambios a prompts
+    runs-on: ubuntu-latest
+    # Se activa solo cuando el commit empieza con "LEARN:"
+    if: startsWith(github.event.head_commit.message, 'LEARN:')
+
+    # El environment "prompt-changes" pausa la ejecución hasta aprobación manual.
+    # Si el reviewer rechaza o no responde, el deployment queda en estado "rejected".
+    environment: prompt-changes
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Registrar auditoría del cambio aprobado
+        # Este step solo se ejecuta si el reviewer aprobó en la UI de GitHub.
+        # Imprime el contenido de pending_prompt_changes.json para el log de Actions.
+        run: |
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+
+          path = Path("governance/pending_prompt_changes.json")
+          if not path.exists():
+              print("pending_prompt_changes.json no encontrado — nada que registrar.")
+          else:
+              changes = json.loads(path.read_text(encoding="utf-8"))
+              approved = [c for c in changes if c.get("status") in ("APPROVED", "PENDING_HUMAN_APPROVAL")]
+              if not approved:
+                  print("Sin cambios APPROVED en pending_prompt_changes.json.")
+              else:
+                  print(f"Cambios aprobados por reviewer de GitHub: {len(approved)}")
+                  for c in approved:
+                      print(f"  • [{c.get('id','?')}] {c.get('agent_file','?')} — {c.get('justification','')[:80]}")
+          EOF
+
+      - name: Subir artefacto de pending_prompt_changes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-changes-${{ github.sha }}
+          if-no-files-found: ignore
+          path: governance/pending_prompt_changes.json

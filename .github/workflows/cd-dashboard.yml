@@ -1,0 +1,32 @@
+name: CD Dashboard — GitHub Pages (U016)
+
+# DESHABILITADO: Este workflow depende de U016 (Dashboard web de observabilidad).
+# U016 tiene estado PENDIENTE hasta que el harness de gobernanza cubra los 7 documentos.
+#
+# Para activar cuando U016 esté APLICADO:
+#   1. Descomentar el bloque "on:" de abajo
+#   2. Eliminar el bloque "on: workflow_dispatch" de placeholder
+#   3. Implementar el job de build del dashboard estático
+
+# Trigger de placeholder — permite ejecutar manualmente para verificar que el
+# archivo está bien formado, sin dispararse en cada push.
+on:
+  workflow_dispatch:
+
+# Trigger real (descomentar cuando U016 esté APLICADO):
+# on:
+#   push:
+#     branches:
+#       - main
+#       - master
+#     paths:
+#       - 'scripts/gov_dashboard.py'
+#       - 'governance/**'
+
+jobs:
+  dashboard-stub:
+    name: Dashboard (U016 pendiente)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Estado
+        run: echo "U016 pendiente — Workflow 4 (CD Dashboard) deshabilitado hasta que U016 esté APLICADO."
