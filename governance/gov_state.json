@@ -1,7 +1,7 @@
 {
   "su": {
     "status": "in_progress",
-    "phase": "evaluator",
+    "phase": "human_approval",
     "current_draft": "governance/su/su_draft_v1.md",
     "iteration_count": 1,
     "complexity": "medium",
